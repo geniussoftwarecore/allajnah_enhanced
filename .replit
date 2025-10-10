@@ -1,10 +1,10 @@
-modules = ["python-3.11", "cpp-clang14", "nodejs-20", "c-clang14"]
+modules = ["nodejs-20", "web", "bash", "python-3.11"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["file", "libxcrypt", "openssl", "postgresql"]
+packages = ["file", "freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "postgresql", "tcl", "tk", "zlib"]
 
 [workflows]
 runButton = "Project"
@@ -51,6 +51,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 8000
+externalPort = 8000
+
+[[ports]]
 localPort = 35913
 externalPort = 3002
 
@@ -65,6 +69,10 @@ externalPort = 3001
 [[ports]]
 localPort = 42041
 externalPort = 3000
+
+[[ports]]
+localPort = 43155
+externalPort = 3003
 
 [deployment]
 deploymentTarget = "autoscale"
