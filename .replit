@@ -1,0 +1,72 @@
+modules = ["python-3.11", "cpp-clang14", "nodejs-20", "c-clang14"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["file", "libxcrypt", "openssl", "postgresql"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Backend Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend App"
+
+[[workflows.workflow]]
+name = "Backend Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd complaints_backend && python src/main.py"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Frontend App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd complaints_frontend && pnpm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 35913
+externalPort = 3002
+
+[[ports]]
+localPort = 38977
+externalPort = 4200
+
+[[ports]]
+localPort = 40817
+externalPort = 3001
+
+[[ports]]
+localPort = 42041
+externalPort = 3000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+build = ["bash", "-c", "cd complaints_frontend && pnpm install && pnpm run build && mkdir -p ../complaints_backend/src/static && cp -r dist/* ../complaints_backend/src/static/"]
