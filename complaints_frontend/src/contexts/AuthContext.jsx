@@ -66,19 +66,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await axios.post('/api/register', userData);
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Registration failed:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'فشل في إنشاء الحساب' 
-      };
-    }
-  };
-
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -121,7 +108,6 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     login,
-    register,
     logout,
     updateProfile,
     changePassword,

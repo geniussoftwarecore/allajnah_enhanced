@@ -7,8 +7,29 @@
 ## المصادقة (Authentication)
 
 ### تسجيل مستخدم جديد
+**ملاحظة مهمة:** التسجيل الذاتي معطل. يتم إنشاء الحسابات فقط من قبل إدارة اللجنة العليا.
+
 ```
 POST /api/register
+Content-Type: application/json
+```
+
+**الاستجابة:**
+```json
+{
+  "message": "التسجيل الذاتي غير متاح. يتم إنشاء الحسابات من قبل إدارة اللجنة العليا فقط",
+  "error": "SELF_REGISTRATION_DISABLED",
+  "contact": "يرجى التواصل مع إدارة اللجنة العليا للحصول على حساب"
+}
+```
+**رمز الحالة:** 403 Forbidden
+
+### إنشاء مستخدم جديد (اللجنة العليا فقط)
+**ملاحظة:** هذا هو الطريقة الوحيدة لإنشاء حسابات جديدة. يتطلب صلاحيات اللجنة العليا.
+
+```
+POST /api/admin/create-user
+Authorization: Bearer jwt_token_here
 Content-Type: application/json
 
 {
@@ -22,16 +43,28 @@ Content-Type: application/json
 }
 ```
 
+**الحقول المطلوبة:**
+- `username`: اسم المستخدم (فريد)
+- `email`: البريد الإلكتروني (فريد)
+- `password`: كلمة المرور
+- `full_name`: الاسم الكامل
+- `role_name`: الدور ("Trader" أو "Technical Committee")
+
+**الحقول الاختيارية:**
+- `phone_number`: رقم الهاتف
+- `address`: العنوان
+
 **الاستجابة:**
 ```json
 {
-  "message": "User created successfully",
+  "message": "تم إنشاء الحساب بنجاح",
   "user": {
     "user_id": "uuid",
     "username": "trader1",
     "email": "trader1@example.com",
     "full_name": "أحمد محمد",
-    "role_name": "Trader"
+    "role_name": "Trader",
+    "is_active": true
   }
 }
 ```
@@ -350,10 +383,20 @@ Authorization: Bearer your_jwt_token_here
 
 ### سيناريو كامل: تقديم شكوى ومتابعتها
 
-1. **تسجيل تاجر جديد:**
+1. **عضو اللجنة العليا يُنشئ حساب تاجر جديد:**
 ```bash
-curl -X POST http://localhost:5000/api/register \
+# أولاً: تسجيل دخول عضو اللجنة العليا
+curl -X POST http://localhost:5000/api/login \
   -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin_password"
+  }'
+
+# ثانياً: إنشاء حساب التاجر
+curl -X POST http://localhost:5000/api/admin/create-user \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
   -d '{
     "username": "trader1",
     "email": "trader1@example.com",
@@ -363,7 +406,7 @@ curl -X POST http://localhost:5000/api/register \
   }'
 ```
 
-2. **تسجيل الدخول:**
+2. **التاجر يسجل الدخول بالبيانات المُنشأة:**
 ```bash
 curl -X POST http://localhost:5000/api/login \
   -H "Content-Type: application/json" \

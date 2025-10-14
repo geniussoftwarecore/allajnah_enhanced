@@ -191,6 +191,19 @@ def admin_create_user(current_user):
         db.session.rollback()
         return jsonify({'message': f'خطأ في إنشاء المستخدم: {str(e)}'}), 500
 
+@auth_bp.route('/register', methods=['POST'])
+@rate_limit("5 per minute")
+def register():
+    """
+    Public registration is disabled. 
+    Only administrators (Higher Committee) can create user accounts via /api/admin/create-user
+    """
+    return jsonify({
+        'message': 'التسجيل الذاتي غير متاح. يتم إنشاء الحسابات من قبل إدارة اللجنة العليا فقط',
+        'error': 'SELF_REGISTRATION_DISABLED',
+        'contact': 'يرجى التواصل مع إدارة اللجنة العليا للحصول على حساب'
+    }), 403
+
 @auth_bp.route('/login', methods=['POST'])
 @rate_limit("10 per minute")
 def login():

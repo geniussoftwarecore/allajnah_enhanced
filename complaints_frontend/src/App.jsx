@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
-import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import ComplaintsList from './components/ComplaintsList';
 import NewComplaint from './components/NewComplaint';
@@ -35,12 +34,6 @@ function AppContent() {
             path="/login" 
             element={
               isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
-            } 
-          />
-          <Route 
-            path="/register" 
-            element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
             } 
           />
           
