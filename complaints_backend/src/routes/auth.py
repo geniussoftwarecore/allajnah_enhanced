@@ -131,18 +131,27 @@ def subscription_required(f):
     
     return decorated
 
-@auth_bp.route('/register', methods=['POST'])
-@rate_limit("5 per hour")
-def register():
+@auth_bp.route('/admin/create-user', methods=['POST'])
+@token_required
+@role_required(['Higher Committee'])
+def admin_create_user(current_user):
+    """Admin-only endpoint to create user accounts for Traders and Technical Committee"""
     try:
         data = request.get_json()
         
-        # Validate required fields (role_name removed - enforced by server)
-        required_fields = ['username', 'email', 'password', 'full_name']
+        # Validate required fields including role_name
+        required_fields = ['username', 'email', 'password', 'full_name', 'role_name']
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             return jsonify({
                 'message': f'الحقول التالية مطلوبة: {", ".join(missing_fields)}'
+            }), 400
+        
+        # Validate role_name - only allow creating Trader or Technical Committee accounts
+        allowed_roles = ['Trader', 'Technical Committee']
+        if data['role_name'] not in allowed_roles:
+            return jsonify({
+                'message': f'يمكن فقط إنشاء حسابات للأدوار التالية: {", ".join(allowed_roles)}'
             }), 400
         
         # Check if user already exists
@@ -152,13 +161,12 @@ def register():
         if User.query.filter_by(email=data['email']).first():
             return jsonify({'message': 'البريد الإلكتروني موجود بالفعل'}), 400
         
-        # SECURITY: Always assign default "Trader" role to new registrations
-        # Ignore any role data from client to prevent privilege escalation
-        default_role = Role.query.filter_by(role_name='Trader').first()
-        if not default_role:
-            return jsonify({'message': 'خطأ في النظام: الدور الافتراضي غير مكوَّن'}), 500
+        # Get the specified role
+        role = Role.query.filter_by(role_name=data['role_name']).first()
+        if not role:
+            return jsonify({'message': 'الدور المحدد غير موجود'}), 400
         
-        # Create new user with default Trader role
+        # Create new user with specified role
         hashed_password = generate_password_hash(data['password'])
         new_user = User(
             username=data['username'],
@@ -167,7 +175,8 @@ def register():
             full_name=data['full_name'],
             phone_number=data.get('phone_number'),
             address=data.get('address'),
-            role_id=default_role.role_id  # Always use default Trader role
+            role_id=role.role_id,
+            is_active=True
         )
         
         db.session.add(new_user)
