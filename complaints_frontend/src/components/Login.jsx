@@ -128,18 +128,6 @@ const Login = () => {
                 )}
               </Button>
             </form>
-            
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                ليس لديك حساب؟{' '}
-                <Link 
-                  to="/register" 
-                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  إنشاء حساب جديد
-                </Link>
-              </p>
-            </div>
           </CardContent>
         </Card>
         
