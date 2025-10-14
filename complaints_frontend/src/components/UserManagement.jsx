@@ -38,7 +38,19 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
   const [showDialog, setShowDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [pagination, setPagination] = useState({ current_page: 1, total: 0, pages: 0 });
+  
+  // New user creation state
+  const [newUser, setNewUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    full_name: '',
+    phone_number: '',
+    address: '',
+    role_name: 'Trader'
+  });
 
   useEffect(() => {
     fetchRoles();
@@ -132,6 +144,35 @@ const UserManagement = () => {
     setShowDialog(true);
   };
 
+  const handleCreateUser = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const response = await axios.post(
+        '/api/admin/create-user',
+        newUser,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuccess(response.data.message);
+      setShowCreateDialog(false);
+      setNewUser({
+        username: '',
+        email: '',
+        password: '',
+        full_name: '',
+        phone_number: '',
+        address: '',
+        role_name: 'Trader'
+      });
+      fetchUsers(pagination.current_page, searchTerm, roleFilter);
+    } catch (err) {
+      setError(err.response?.data?.message || 'فشل في إنشاء المستخدم');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRoleColor = (roleName) => {
     switch (roleName) {
       case 'Higher Committee':
@@ -179,18 +220,28 @@ const UserManagement = () => {
       <div className="max-w-7xl mx-auto">
         <Card className="shadow-xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-900">
+                    إدارة المستخدمين
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    إدارة صلاحيات المستخدمين وحالاتهم
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  إدارة المستخدمين
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  إدارة صلاحيات المستخدمين وحالاتهم
-                </CardDescription>
-              </div>
+              {user.role_name === 'Higher Committee' && (
+                <Button 
+                  onClick={() => setShowCreateDialog(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  إنشاء مستخدم جديد
+                </Button>
+              )}
             </div>
           </CardHeader>
 
@@ -372,6 +423,105 @@ const UserManagement = () => {
             </Button>
             <Button onClick={handleRoleChange} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'حفظ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>إنشاء مستخدم جديد</DialogTitle>
+            <DialogDescription>
+              إنشاء حساب جديد لتاجر أو عضو لجنة فنية
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-username">اسم المستخدم *</Label>
+              <Input
+                id="new-username"
+                value={newUser.username}
+                onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                className="text-right"
+                placeholder="أدخل اسم المستخدم"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-email">البريد الإلكتروني *</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                className="text-right"
+                placeholder="example@email.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">كلمة المرور *</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                className="text-right"
+                placeholder="أدخل كلمة المرور"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-fullname">الاسم الكامل *</Label>
+              <Input
+                id="new-fullname"
+                value={newUser.full_name}
+                onChange={(e) => setNewUser({...newUser, full_name: e.target.value})}
+                className="text-right"
+                placeholder="أدخل الاسم الكامل"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-phone">رقم الهاتف</Label>
+              <Input
+                id="new-phone"
+                value={newUser.phone_number}
+                onChange={(e) => setNewUser({...newUser, phone_number: e.target.value})}
+                className="text-right"
+                placeholder="967xxxxxxxxx"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-address">العنوان</Label>
+              <Input
+                id="new-address"
+                value={newUser.address}
+                onChange={(e) => setNewUser({...newUser, address: e.target.value})}
+                className="text-right"
+                placeholder="أدخل العنوان"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-role">الدور *</Label>
+              <Select value={newUser.role_name} onValueChange={(value) => setNewUser({...newUser, role_name: value})}>
+                <SelectTrigger className="text-right">
+                  <SelectValue placeholder="اختر الدور" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Trader">تاجر</SelectItem>
+                  <SelectItem value="Technical Committee">عضو اللجنة الفنية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleCreateUser} 
+              disabled={loading || !newUser.username || !newUser.email || !newUser.password || !newUser.full_name} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'إنشاء'}
             </Button>
           </DialogFooter>
         </DialogContent>
