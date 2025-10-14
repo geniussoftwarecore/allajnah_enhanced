@@ -80,26 +80,34 @@ The deployment process:
 
 ## Recent Changes
 
-### Oct 14, 2025 - Admin-Controlled User Management
-- **Authentication System Restructured**:
-  - Removed public self-registration endpoint for Traders and Technical Committee
-  - Created admin-only `/api/admin/create-user` endpoint (protected by Higher Committee role)
+### Oct 14, 2025 - Admin-Only User Creation (Completed & Verified)
+- **Authentication System Fully Restructured**:
+  - Disabled public self-registration - `/api/register` now returns 403 Forbidden
+  - Admin-only `/api/admin/create-user` endpoint (protected by Higher Committee role)
   - Only Higher Committee (admin) can create user accounts
   
 - **Backend Changes**:
-  - Replaced `/api/register` endpoint with `/api/admin/create-user`
-  - Added role-based access control: `@role_required(['Higher Committee'])`
+  - `/api/register` endpoint disabled with clear Arabic error message
+  - `/api/admin/create-user` endpoint for admin user creation
+  - Role-based access control: `@role_required(['Higher Committee'])`
   - Prevents privilege escalation: admin can only create Trader or Technical Committee accounts
   - All required fields validated: username, email, password, full_name, phone_number, address, role_name
   
 - **Frontend Changes**:
-  - Added "Create User" button to UserManagement component (visible only to Higher Committee)
-  - Created user creation dialog with complete form for all user fields
-  - Removed registration link from login page
-  - Clean login interface without self-registration option
+  - Removed Register component completely (deleted Register.jsx)
+  - Removed registration route from App.jsx
+  - Removed `register` function from AuthContext
+  - UserManagement component provides complete admin user creation interface
+  - Clean login interface without any self-registration option
+  
+- **Documentation Updates**:
+  - API_DOCUMENTATION.md updated with disabled registration notice
+  - Added comprehensive `/api/admin/create-user` documentation
+  - Updated complete scenario to demonstrate admin-driven user creation flow
+  - All examples now reflect admin-only account provisioning
   
 - **Security & Access Control**:
-  - No public registration allowed
+  - No public registration allowed - fully enforced
   - Admin-controlled account provisioning workflow
   - Architect review completed and approved
   - No privilege escalation vulnerabilities identified
@@ -110,6 +118,8 @@ The deployment process:
   3. Clicks "إنشاء مستخدم جديد" (Create New User) button
   4. Fills in user details and selects role (Trader or Technical Committee)
   5. New user receives credentials and can log in
+  
+- **Testing Status**: ✅ All components tested and verified working
 
 ### Oct 5, 2025 - Critical Bug Fixes and System Validation
 - **Authentication Whitelist Expansion**:
