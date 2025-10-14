@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
+import Setup from './components/Setup';
 import Dashboard from './components/Dashboard';
 import ComplaintsList from './components/ComplaintsList';
 import NewComplaint from './components/NewComplaint';
@@ -30,6 +31,10 @@ function AppContent() {
         
         <Routes>
           {/* Public Routes */}
+          <Route 
+            path="/setup" 
+            element={<Setup />} 
+          />
           <Route 
             path="/login" 
             element={

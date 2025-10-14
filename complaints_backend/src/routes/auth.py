@@ -131,6 +131,92 @@ def subscription_required(f):
     
     return decorated
 
+@auth_bp.route('/setup/status', methods=['GET'])
+def check_setup_status():
+    """Check if the system needs initial setup (no admin exists)"""
+    try:
+        admin_role = Role.query.filter_by(role_name='Higher Committee').first()
+        if not admin_role:
+            return jsonify({
+                'setup_required': True,
+                'message': 'النظام يحتاج إلى إعداد أولي'
+            }), 200
+        
+        admin_exists = User.query.filter_by(role_id=admin_role.role_id).first() is not None
+        
+        return jsonify({
+            'setup_required': not admin_exists,
+            'message': 'تم إعداد النظام بالفعل' if admin_exists else 'النظام يحتاج إلى إعداد أولي'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': f'خطأ في التحقق من حالة الإعداد: {str(e)}'}), 500
+
+@auth_bp.route('/setup/init', methods=['POST'])
+@rate_limit("3 per hour")
+def initial_setup():
+    """Create the first admin account - only works if no admin exists"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'البيانات مطلوبة'}), 400
+        
+        required_fields = ['username', 'email', 'password', 'full_name']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({
+                'message': f'الحقول التالية مطلوبة: {", ".join(missing_fields)}'
+            }), 400
+        
+        db.session.begin_nested()
+        
+        admin_role = Role.query.filter_by(role_name='Higher Committee').with_for_update().first()
+        if not admin_role:
+            db.session.rollback()
+            return jsonify({
+                'message': 'خطأ: دور اللجنة العليا غير موجود في النظام'
+            }), 500
+        
+        admin_exists = User.query.filter_by(role_id=admin_role.role_id).with_for_update().first()
+        if admin_exists:
+            db.session.rollback()
+            return jsonify({
+                'message': 'تم إعداد النظام بالفعل. لا يمكن إنشاء حساب مسؤول إضافي عبر هذه الصفحة',
+                'setup_already_complete': True
+            }), 403
+        
+        if User.query.filter_by(username=data['username']).first():
+            db.session.rollback()
+            return jsonify({'message': 'اسم المستخدم موجود بالفعل'}), 400
+        
+        if User.query.filter_by(email=data['email']).first():
+            db.session.rollback()
+            return jsonify({'message': 'البريد الإلكتروني موجود بالفعل'}), 400
+        
+        hashed_password = generate_password_hash(data['password'])
+        new_admin = User(
+            username=data['username'],
+            email=data['email'],
+            password_hash=hashed_password,
+            full_name=data['full_name'],
+            phone_number=data.get('phone_number'),
+            address=data.get('address'),
+            role_id=admin_role.role_id,
+            is_active=True
+        )
+        
+        db.session.add(new_admin)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'تم إنشاء حساب المسؤول بنجاح. يمكنك الآن تسجيل الدخول',
+            'user': new_admin.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'خطأ في إنشاء حساب المسؤول: {str(e)}'}), 500
+
 @auth_bp.route('/admin/create-user', methods=['POST'])
 @token_required
 @role_required(['Higher Committee'])

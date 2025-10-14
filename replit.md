@@ -80,6 +80,40 @@ The deployment process:
 
 ## Recent Changes
 
+### Oct 14, 2025 - First-Time Setup Page (Completed & Verified)
+- **Initial Setup Wizard Implemented**:
+  - Added `/setup` route for first-time installation
+  - Only accessible when no Higher Committee (admin) account exists
+  - Becomes inaccessible once admin account is created
+  
+- **Backend Changes**:
+  - `GET /api/setup/status` - Checks if system needs setup (no admin exists)
+  - `POST /api/setup/init` - Creates first admin account with race condition protection
+  - Uses row-level locking (`with_for_update()`) to prevent concurrent admin creation
+  - Returns 403 with `setup_already_complete: true` if admin already exists
+  
+- **Frontend Changes**:
+  - Setup.jsx component with comprehensive form for admin creation
+  - Auto-checks setup status on mount
+  - Shows setup form if no admin exists
+  - Shows "already complete" message and redirects to login if admin exists
+  - Validates password confirmation and required fields
+  - Full Arabic RTL support matching Login component design
+  
+- **Security Features**:
+  - Rate limited to 3 requests per hour
+  - Transaction-safe with row locking to prevent race conditions
+  - JSON payload validation before processing
+  - Only creates Higher Committee (admin) accounts
+  - Automatic redirect after successful setup
+  
+- **User Flow**:
+  1. First user visits `/setup` on fresh installation
+  2. Fills in admin credentials (username, email, password, full name, optional phone/address)
+  3. System creates admin account within protected transaction
+  4. User redirected to login page
+  5. Future attempts to access `/setup` show "already complete" and redirect
+
 ### Oct 14, 2025 - Admin-Only User Creation (Completed & Verified)
 - **Authentication System Fully Restructured**:
   - Disabled public self-registration - `/api/register` now returns 403 Forbidden
