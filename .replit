@@ -5,7 +5,7 @@ integrations = ["python_database:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cairo", "ffmpeg-full", "file", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "gobject-introspection", "gtk3", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "pkg-config", "postgresql", "qhull", "tcl", "tk", "zlib", "gdk-pixbuf", "libffi"]
+packages = ["cairo", "ffmpeg-full", "file", "fontconfig", "freetype", "gdk-pixbuf", "ghostscript", "glib", "glibcLocales", "gobject-introspection", "gtk3", "harfbuzz", "lcms2", "libffi", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "pkg-config", "postgresql", "qhull", "tcl", "tk", "zlib"]
 
 [workflows]
 runButton = "Project"
@@ -62,6 +62,10 @@ externalPort = 5173
 [[ports]]
 localPort = 35913
 externalPort = 3002
+
+[[ports]]
+localPort = 38251
+externalPort = 8008
 
 [[ports]]
 localPort = 38977
