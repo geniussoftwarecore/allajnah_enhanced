@@ -58,7 +58,8 @@ def token_required(f):
             '/api/payment/submit',
             '/api/payment/receipt',
             '/api/payments',
-            '/api/renewal/check'
+            '/api/renewal/check',
+            '/api/profile'
         ]
         
         if current_user.role.role_name == 'Trader':
