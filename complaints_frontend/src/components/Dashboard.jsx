@@ -13,19 +13,41 @@ import {
   Plus,
   Search,
   Filter,
-  BarChart3
+  BarChart3,
+  Calendar,
+  CreditCard,
+  RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user, isTrader, isTechnicalCommittee, isHigherCommittee } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Fetch subscription data (for traders only)
+        if (isTrader) {
+          setSubscriptionLoading(true);
+          try {
+            const subscriptionResponse = await axios.get('/api/subscription/me');
+            setSubscriptionData(subscriptionResponse.data.data);
+          } catch (error) {
+            console.error('Failed to fetch subscription data:', error);
+            toast.error('فشل تحميل بيانات الاشتراك');
+          } finally {
+            setSubscriptionLoading(false);
+          }
+        }
+
         // Fetch dashboard statistics (for committee members)
         if (isTechnicalCommittee || isHigherCommittee) {
           const statsResponse = await axios.get('/api/dashboard/stats');
@@ -37,13 +59,14 @@ const Dashboard = () => {
         setRecentComplaints(complaintsResponse.data.complaints);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
+        toast.error('فشل تحميل بيانات لوحة التحكم');
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, [isTechnicalCommittee, isHigherCommittee]);
+  }, [isTrader, isTechnicalCommittee, isHigherCommittee]);
 
   const getStatusColor = (status) => {
     const statusColors = {
@@ -74,6 +97,19 @@ const Dashboard = () => {
     });
   };
 
+  const calculateDaysRemaining = (endDateString) => {
+    const endDate = new Date(endDateString);
+    const today = new Date();
+    const diffTime = endDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const isSubscriptionExpiringSoon = (endDateString) => {
+    const daysRemaining = calculateDaysRemaining(endDateString);
+    return daysRemaining > 0 && daysRemaining <= 30;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,6 +135,137 @@ const Dashboard = () => {
             {isHigherCommittee && 'لوحة تحكم اللجنة العليا'}
           </p>
         </div>
+
+        {/* Subscription Card (for Traders only) */}
+        {isTrader && (
+          <div className="mb-8">
+            {subscriptionLoading ? (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="mr-3 text-gray-600">جاري تحميل بيانات الاشتراك...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : subscriptionData?.has_active_subscription && subscriptionData?.subscription ? (
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-emerald-900">
+                    <CreditCard className="h-6 w-6" />
+                    معلومات الاشتراك
+                  </CardTitle>
+                  <CardDescription className="text-emerald-700">
+                    حالة اشتراكك في نظام الشكاوى الإلكتروني
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Status */}
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-emerald-100 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">الحالة</p>
+                        <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">
+                          {subscriptionData.subscription.status === 'active' ? 'نشط' : 'غير نشط'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Start Date */}
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">تاريخ البداية</p>
+                        <p className="font-semibold text-gray-900">
+                          {formatDate(subscriptionData.subscription.start_date)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* End Date */}
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <Calendar className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">تاريخ الانتهاء</p>
+                        <p className="font-semibold text-gray-900">
+                          {formatDate(subscriptionData.subscription.end_date)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Days Remaining */}
+                  <div className="mt-6 p-4 bg-white rounded-lg border border-emerald-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-6 w-6 text-emerald-600" />
+                        <div>
+                          <p className="text-sm text-gray-600">الوقت المتبقي</p>
+                          <p className="text-2xl font-bold text-emerald-600">
+                            {calculateDaysRemaining(subscriptionData.subscription.end_date)} يوم
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Renewal Button if expiring soon */}
+                      {isSubscriptionExpiringSoon(subscriptionData.subscription.end_date) && (
+                        <Button
+                          onClick={() => navigate('/payment')}
+                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                        >
+                          <RefreshCw className="h-4 w-4 ml-2" />
+                          تجديد الاشتراك
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Warning if expiring soon */}
+                    {isSubscriptionExpiringSoon(subscriptionData.subscription.end_date) && (
+                      <div className="mt-4 flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-orange-800">
+                          اشتراكك على وشك الانتهاء. يرجى تجديد الاشتراك للاستمرار في استخدام النظام.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-red-200">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-red-100 rounded-lg">
+                      <AlertTriangle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-red-900 mb-2">
+                        لا يوجد اشتراك نشط
+                      </h3>
+                      <p className="text-red-700 mb-4">
+                        يجب تفعيل الاشتراك السنوي للاستمرار في استخدام نظام الشكاوى الإلكتروني.
+                      </p>
+                      <Button
+                        onClick={() => navigate('/payment')}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <CreditCard className="h-4 w-4 ml-2" />
+                        تفعيل الاشتراك الآن
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* Statistics Cards (for Committee Members) */}
         {(isTechnicalCommittee || isHigherCommittee) && stats && (

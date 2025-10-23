@@ -14,6 +14,7 @@ import SubscriptionGate from './components/SubscriptionGate';
 import PaymentPage from './components/PaymentPage';
 import PaymentReview from './components/PaymentReview';
 import PaymentSettings from './components/PaymentSettings';
+import PaymentHistory from './components/PaymentHistory';
 import RenewalReminder from './components/RenewalReminder';
 import './App.css';
 
@@ -56,6 +57,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <PaymentPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/payment-history" 
+            element={
+              <ProtectedRoute requiredRoles={['Trader']}>
+                <PaymentHistory />
               </ProtectedRoute>
             } 
           />

@@ -1,18 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const SubscriptionGate = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
     checkSubscriptionStatus();
+  }, []);
+
+  useEffect(() => {
+    pollingIntervalRef.current = setInterval(() => {
+      checkSubscriptionStatus();
+    }, 10000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, []);
 
   const checkSubscriptionStatus = async () => {
@@ -26,6 +40,12 @@ const SubscriptionGate = () => {
       setLoading(false);
       
       if (response.data.has_active_subscription) {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        
+        toast.success('تم تفعيل اشتراكك بنجاح!');
         navigate('/dashboard');
       }
     } catch (error) {

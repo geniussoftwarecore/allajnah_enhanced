@@ -43,6 +43,19 @@ def get_my_subscription(current_user):
     except Exception as e:
         return error_response(error=str(e), message='خطأ في جلب حالة الاشتراك', status_code=500)
 
+@subscription_v2_bp.route('/payments', methods=['GET'])
+@token_required
+def get_my_payments(current_user):
+    """GET /api/payments → سجل المدفوعات للمستخدم الحالي"""
+    try:
+        payments = Payment.query.filter_by(
+            user_id=current_user.user_id
+        ).order_by(Payment.created_at.desc()).all()
+        
+        return success_response(data={'payments': [payment.to_dict() for payment in payments]})
+    except Exception as e:
+        return error_response(error=str(e), message='خطأ في جلب سجل المدفوعات', status_code=500)
+
 @subscription_v2_bp.route('/payments', methods=['POST'])
 @token_required
 @rate_limit("3 per hour")
