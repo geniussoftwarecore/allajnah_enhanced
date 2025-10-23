@@ -17,7 +17,7 @@ def rate_limit(limit_string):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                limiter = current_app.limiter
+                limiter = current_app.limiter  # type: ignore
                 return limiter.limit(limit_string)(f)(*args, **kwargs)
             except AttributeError:
                 return f(*args, **kwargs)
@@ -195,7 +195,7 @@ def initial_setup():
             return jsonify({'message': 'البريد الإلكتروني موجود بالفعل'}), 400
         
         hashed_password = generate_password_hash(data['password'])
-        new_admin = User(
+        new_admin = User(  # type: ignore
             username=data['username'],
             email=data['email'],
             password_hash=hashed_password,
@@ -255,7 +255,7 @@ def admin_create_user(current_user):
         
         # Create new user with specified role
         hashed_password = generate_password_hash(data['password'])
-        new_user = User(
+        new_user = User(  # type: ignore
             username=data['username'],
             email=data['email'],
             password_hash=hashed_password,
@@ -426,7 +426,7 @@ def enable_2fa(current_user):
         )
         
         # Create QR code image
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)  # type: ignore
         qr.add_data(provisioning_uri)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
