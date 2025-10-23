@@ -8,6 +8,7 @@ import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription } from './ui/alert';
 import { Wallet, Upload, ArrowRight, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ const PaymentPage = () => {
       setLoading(false);
     } catch (error) {
       console.error('Error fetching payment data:', error);
+      toast.error('حدث خطأ أثناء تحميل بيانات الدفع. يرجى المحاولة مرة أخرى.');
       setLoading(false);
     }
   };
@@ -58,6 +60,8 @@ const PaymentPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+
+    const toastId = toast.loading('جاري إرسال إثبات الدفع...');
 
     try {
       const token = localStorage.getItem('token');
@@ -77,10 +81,11 @@ const PaymentPage = () => {
         }
       });
 
+      toast.success('تم إرسال إثبات الدفع بنجاح. سيتم مراجعته قريباً.', { id: toastId });
       navigate('/subscription-gate');
     } catch (error) {
       console.error('Error submitting payment:', error);
-      alert('حدث خطأ أثناء إرسال إثبات الدفع. يرجى المحاولة مرة أخرى.');
+      toast.error('حدث خطأ أثناء إرسال إثبات الدفع. يرجى المحاولة مرة أخرى.', { id: toastId });
     } finally {
       setSubmitting(false);
     }
