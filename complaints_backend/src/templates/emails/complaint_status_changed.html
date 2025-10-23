@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحديث حالة الشكوى</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-box {
+            background-color: #d1ecf1;
+            border-right: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .complaint-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .complaint-info h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-in-progress { background-color: #cfe2ff; color: #084298; }
+        .status-resolved { background-color: #d1e7dd; color: #0f5132; }
+        .status-closed { background-color: #e2e3e5; color: #41464b; }
+        .button {
+            display: inline-block;
+            background-color: #4facfe;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">📋</div>
+            <h1>تحديث حالة الشكوى</h1>
+        </div>
+        
+        <div class="content">
+            <p>عزيزي/عزيزتي <strong>{{user_name}}</strong>،</p>
+            
+            <div class="status-box">
+                <p style="margin: 0; font-size: 16px;">
+                    تم تحديث حالة شكواك في نظام الشكاوى الإلكتروني.
+                </p>
+            </div>
+            
+            <div class="complaint-info">
+                <h3>تفاصيل الشكوى</h3>
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold; width: 35%;">رقم الشكوى:</td>
+                        <td style="padding: 8px 0;">{{complaint_id}}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">عنوان الشكوى:</td>
+                        <td style="padding: 8px 0;">{{complaint_title}}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">الحالة السابقة:</td>
+                        <td style="padding: 8px 0;">
+                            <span class="status-badge status-{{old_status_class}}">{{old_status}}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">الحالة الجديدة:</td>
+                        <td style="padding: 8px 0;">
+                            <span class="status-badge status-{{new_status_class}}">{{new_status}}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">تاريخ التحديث:</td>
+                        <td style="padding: 8px 0;">{{update_date}}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <p><strong>الخطوات التالية:</strong></p>
+            <ul>
+                <li>قم بمراجعة تفاصيل الشكوى في النظام</li>
+                <li>تحقق من أي تعليقات أو ملاحظات جديدة</li>
+                <li>إذا كانت الشكوى محلولة، يرجى تأكيد الحل</li>
+            </ul>
+            
+            <center>
+                <a href="#" class="button">عرض تفاصيل الشكوى</a>
+            </center>
+            
+            <p style="margin-top: 30px; color: #6c757d;">
+                سنبقيك على اطلاع بأي تحديثات جديدة على شكواك.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>نظام الشكاوى الإلكتروني</p>
+            <p>نسعى دائماً لخدمتك بشكل أفضل</p>
+        </div>
+    </div>
+</body>
+</html>

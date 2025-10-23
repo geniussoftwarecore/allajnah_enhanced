@@ -6,6 +6,7 @@ from src.utils.security import validate_and_save_file, validate_payment_data
 from src.utils.response import success_response, error_response
 from src.services.subscription_service import create_or_extend_subscription
 from src.services.scheduler import run_daily_tasks, send_renewal_reminders, check_and_expire_subscriptions
+from src.services.job_queue import enqueue_notification
 from datetime import datetime
 import os
 
@@ -179,6 +180,18 @@ def approve_payment(current_user, payment_id):
             payment.review_notes = notes
             db.session.commit()
         
+        user = User.query.get(payment.user_id)
+        if user:
+            subscription_data = result.get('subscription', {})
+            enqueue_notification(
+                user_id=user.user_id,
+                notification_type='payment_approved',
+                message='تم اعتماد دفعتك وتفعيل اشتراكك بنجاح!',
+                channel='all',
+                start_date=subscription_data.get('start_date', ''),
+                end_date=subscription_data.get('end_date', '')
+            )
+        
         return success_response(
             data={'subscription': result['subscription']},
             message='تم اعتماد الدفع بنجاح'
@@ -211,14 +224,17 @@ def reject_payment(current_user, payment_id):
         payment.reviewed_at = datetime.utcnow()
         payment.review_notes = data['admin_note']
         
-        notification = Notification(
-            user_id=payment.user_id,
-            message=f'تم رفض دفعتك. السبب: {data["admin_note"]}. يمكنك إعادة إرسال إثبات الدفع',
-            type='payment_rejected'
-        )
-        
-        db.session.add(notification)
         db.session.commit()
+        
+        user = User.query.get(payment.user_id)
+        if user:
+            enqueue_notification(
+                user_id=user.user_id,
+                notification_type='payment_rejected',
+                message=f'تم رفض دفعتك. السبب: {data["admin_note"]}. يمكنك إعادة إرسال إثبات الدفع',
+                channel='email',
+                rejection_reason=data['admin_note']
+            )
         
         return success_response(message='تم رفض الدفع')
         

@@ -5,9 +5,19 @@ import pyotp
 import qrcode
 import io
 import base64
+import json
 from datetime import datetime, timedelta
 from functools import wraps
+from marshmallow import ValidationError
 from src.models.complaint import db, User, Role
+from src.services.job_queue import enqueue_notification
+from src.services.session_service import session_service
+from src.utils.security import lockout_service
+from src.utils.password_policy import validate_password_strength
+from src.schemas.user import (
+    UserCreateSchema, UserUpdateSchema, UserLoginSchema,
+    ChangePasswordSchema, RefreshTokenSchema, RevokeSessionSchema
+)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -17,7 +27,7 @@ def rate_limit(limit_string):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                limiter = current_app.limiter  # type: ignore
+                limiter = current_app.limiter
                 return limiter.limit(limit_string)(f)(*args, **kwargs)
             except AttributeError:
                 return f(*args, **kwargs)
@@ -32,7 +42,7 @@ def token_required(f):
         if 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             try:
-                token = auth_header.split(" ")[1]  # Bearer TOKEN
+                token = auth_header.split(" ")[1]
             except IndexError:
                 return jsonify({'message': 'تنسيق رمز التوثيق غير صالح'}), 401
         
@@ -40,7 +50,6 @@ def token_required(f):
             return jsonify({'message': 'رمز التوثيق مفقود'}), 401
         
         try:
-            from flask import current_app
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.filter_by(user_id=data['user_id']).first()
             if not current_user:
@@ -154,7 +163,7 @@ def check_setup_status():
         return jsonify({'message': f'خطأ في التحقق من حالة الإعداد: {str(e)}'}), 500
 
 @auth_bp.route('/setup/init', methods=['POST'])
-@rate_limit("3 per hour")
+@rate_limit("2 per hour")
 def initial_setup():
     """Create the first admin account - only works if no admin exists"""
     try:
@@ -162,21 +171,22 @@ def initial_setup():
         if not data:
             return jsonify({'message': 'البيانات مطلوبة'}), 400
         
-        required_fields = ['username', 'email', 'password', 'full_name']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            return jsonify({
-                'message': f'الحقول التالية مطلوبة: {", ".join(missing_fields)}'
-            }), 400
+        schema = UserCreateSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
+        
+        is_valid, errors = validate_password_strength(validated_data['password'])
+        if not is_valid:
+            return jsonify({'message': 'كلمة المرور ضعيفة', 'errors': errors}), 400
         
         db.session.begin_nested()
         
         admin_role = Role.query.filter_by(role_name='Higher Committee').with_for_update().first()
         if not admin_role:
             db.session.rollback()
-            return jsonify({
-                'message': 'خطأ: دور اللجنة العليا غير موجود في النظام'
-            }), 500
+            return jsonify({'message': 'خطأ: دور اللجنة العليا غير موجود في النظام'}), 500
         
         admin_exists = User.query.filter_by(role_id=admin_role.role_id).with_for_update().first()
         if admin_exists:
@@ -186,24 +196,25 @@ def initial_setup():
                 'setup_already_complete': True
             }), 403
         
-        if User.query.filter_by(username=data['username']).first():
+        if User.query.filter_by(username=validated_data['username']).first():
             db.session.rollback()
             return jsonify({'message': 'اسم المستخدم موجود بالفعل'}), 400
         
-        if User.query.filter_by(email=data['email']).first():
+        if User.query.filter_by(email=validated_data['email']).first():
             db.session.rollback()
             return jsonify({'message': 'البريد الإلكتروني موجود بالفعل'}), 400
         
-        hashed_password = generate_password_hash(data['password'])
-        new_admin = User(  # type: ignore
-            username=data['username'],
-            email=data['email'],
+        hashed_password = generate_password_hash(validated_data['password'])
+        new_admin = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
             password_hash=hashed_password,
-            full_name=data['full_name'],
-            phone_number=data.get('phone_number'),
-            address=data.get('address'),
+            full_name=validated_data['full_name'],
+            phone_number=validated_data.get('phone_number'),
+            address=validated_data.get('address'),
             role_id=admin_role.role_id,
-            is_active=True
+            is_active=True,
+            last_password_change=datetime.utcnow()
         )
         
         db.session.add(new_admin)
@@ -222,52 +233,56 @@ def initial_setup():
 @token_required
 @role_required(['Higher Committee'])
 def admin_create_user(current_user):
-    """Admin-only endpoint to create user accounts for Traders and Technical Committee"""
+    """Admin-only endpoint to create user accounts"""
     try:
         data = request.get_json()
         
-        # Validate required fields including role_name
-        required_fields = ['username', 'email', 'password', 'full_name', 'role_name']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            return jsonify({
-                'message': f'الحقول التالية مطلوبة: {", ".join(missing_fields)}'
-            }), 400
+        schema = UserCreateSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
         
-        # Validate role_name - only allow creating Trader or Technical Committee accounts
+        is_valid, errors = validate_password_strength(validated_data['password'])
+        if not is_valid:
+            return jsonify({'message': 'كلمة المرور ضعيفة', 'errors': errors}), 400
+        
         allowed_roles = ['Trader', 'Technical Committee']
-        if data['role_name'] not in allowed_roles:
-            return jsonify({
-                'message': f'يمكن فقط إنشاء حسابات للأدوار التالية: {", ".join(allowed_roles)}'
-            }), 400
+        role = Role.query.filter_by(role_id=validated_data['role_id']).first()
+        if not role or role.role_name not in allowed_roles:
+            return jsonify({'message': f'يمكن فقط إنشاء حسابات للأدوار التالية: {", ".join(allowed_roles)}'}), 400
         
-        # Check if user already exists
-        if User.query.filter_by(username=data['username']).first():
+        if User.query.filter_by(username=validated_data['username']).first():
             return jsonify({'message': 'اسم المستخدم موجود بالفعل'}), 400
         
-        if User.query.filter_by(email=data['email']).first():
+        if User.query.filter_by(email=validated_data['email']).first():
             return jsonify({'message': 'البريد الإلكتروني موجود بالفعل'}), 400
         
-        # Get the specified role
-        role = Role.query.filter_by(role_name=data['role_name']).first()
-        if not role:
-            return jsonify({'message': 'الدور المحدد غير موجود'}), 400
-        
-        # Create new user with specified role
-        hashed_password = generate_password_hash(data['password'])
-        new_user = User(  # type: ignore
-            username=data['username'],
-            email=data['email'],
+        hashed_password = generate_password_hash(validated_data['password'])
+        new_user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
             password_hash=hashed_password,
-            full_name=data['full_name'],
-            phone_number=data.get('phone_number'),
-            address=data.get('address'),
-            role_id=role.role_id,
-            is_active=True
+            full_name=validated_data['full_name'],
+            phone_number=validated_data.get('phone_number'),
+            address=validated_data.get('address'),
+            role_id=validated_data['role_id'],
+            is_active=True,
+            last_password_change=datetime.utcnow()
         )
         
         db.session.add(new_user)
         db.session.commit()
+        
+        enqueue_notification(
+            user_id=new_user.user_id,
+            notification_type='welcome',
+            message=f'مرحباً بك في نظام الشكاوى الإلكتروني!',
+            channel='email',
+            username=new_user.username,
+            email=new_user.email,
+            temporary_password=validated_data['password']
+        )
         
         return jsonify({
             'message': 'تم إنشاء الحساب بنجاح',
@@ -279,12 +294,9 @@ def admin_create_user(current_user):
         return jsonify({'message': f'خطأ في إنشاء المستخدم: {str(e)}'}), 500
 
 @auth_bp.route('/register', methods=['POST'])
-@rate_limit("5 per minute")
+@rate_limit("2 per hour")
 def register():
-    """
-    Public registration is disabled. 
-    Only administrators (Higher Committee) can create user accounts via /api/admin/create-user
-    """
+    """Public registration is disabled"""
     return jsonify({
         'message': 'التسجيل الذاتي غير متاح. يتم إنشاء الحسابات من قبل إدارة اللجنة العليا فقط',
         'error': 'SELF_REGISTRATION_DISABLED',
@@ -292,54 +304,198 @@ def register():
     }), 403
 
 @auth_bp.route('/login', methods=['POST'])
-@rate_limit("10 per minute")
+@rate_limit("5 per 15 minutes")
 def login():
     try:
         data = request.get_json()
         
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'message': 'اسم المستخدم وكلمة المرور مطلوبان'}), 400
+        schema = UserLoginSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات تسجيل الدخول غير صالحة', 'errors': err.messages}), 400
         
-        user = User.query.filter_by(username=data['username']).first()
+        username = validated_data['username']
+        password = validated_data['password']
+        ip_address = request.remote_addr or 'Unknown'
         
-        if user and check_password_hash(user.password_hash, data['password']):
-            if not user.is_active:
-                return jsonify({'message': 'الحساب غير نشط'}), 401
-            
-            # Check if 2FA is enabled
-            if user.two_factor_enabled:
-                # Return response requiring 2FA
-                return jsonify({
-                    'requires_2fa': True,
-                    'message': 'يرجى إدخال رمز المصادقة الثنائية',
-                    'username': user.username
-                }), 200
-            
-            # No 2FA, proceed with login
-            from flask import current_app
-            token = jwt.encode({
-                'user_id': user.user_id,
-                'exp': datetime.utcnow() + timedelta(hours=24)
-            }, current_app.config['SECRET_KEY'], algorithm='HS256')
-            
+        is_locked, locked_until = lockout_service.is_account_locked(username)
+        if is_locked:
+            remaining_time = int((locked_until - datetime.utcnow()).total_seconds() / 60)
             return jsonify({
-                'requires_2fa': False,
-                'message': 'تم تسجيل الدخول بنجاح',
-                'token': token,
-                'user': user.to_dict()
+                'message': f'الحساب مقفل بسبب محاولات تسجيل دخول فاشلة متعددة. يرجى المحاولة بعد {remaining_time} دقيقة',
+                'account_locked': True,
+                'locked_until': locked_until.isoformat()
+            }), 403
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if not user or not check_password_hash(user.password_hash, password):
+            is_locked, locked_until = lockout_service.record_failed_attempt(username, ip_address)
+            
+            if is_locked:
+                enqueue_notification(
+                    user_id=user.user_id if user else None,
+                    notification_type='account_locked',
+                    message='تم قفل حسابك بسبب محاولات تسجيل دخول فاشلة متعددة',
+                    channel='email',
+                    username=username,
+                    email=user.email if user else None
+                )
+                return jsonify({
+                    'message': 'تم قفل الحساب بسبب محاولات تسجيل دخول فاشلة متعددة',
+                    'account_locked': True
+                }), 403
+            
+            remaining = lockout_service.get_remaining_attempts(username, ip_address)
+            return jsonify({
+                'message': f'اسم المستخدم أو كلمة المرور غير صحيحة. المحاولات المتبقية: {remaining}',
+                'remaining_attempts': remaining
+            }), 401
+        
+        if not user.is_active:
+            return jsonify({'message': 'الحساب غير نشط'}), 401
+        
+        if user.two_factor_enabled:
+            return jsonify({
+                'requires_2fa': True,
+                'message': 'يرجى إدخال رمز المصادقة الثنائية',
+                'username': user.username
             }), 200
         
-        return jsonify({'message': 'اسم المستخدم أو كلمة المرور غير صحيحة'}), 401
+        lockout_service.clear_failed_attempts(username, ip_address)
+        
+        access_token_exp = int(os.environ.get('ACCESS_TOKEN_HOURS', 1))
+        refresh_token_days = int(os.environ.get('REFRESH_TOKEN_DAYS', 30))
+        
+        access_token = jwt.encode({
+            'user_id': user.user_id,
+            'exp': datetime.utcnow() + timedelta(hours=access_token_exp)
+        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        
+        refresh_token = session_service.create_session(user.user_id, expires_days=refresh_token_days)
+        
+        return jsonify({
+            'requires_2fa': False,
+            'message': 'تم تسجيل الدخول بنجاح',
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'token_type': 'Bearer',
+            'expires_in': access_token_exp * 3600,
+            'user': user.to_dict()
+        }), 200
         
     except Exception as e:
         return jsonify({'message': f'خطأ أثناء تسجيل الدخول: {str(e)}'}), 500
 
+@auth_bp.route('/refresh', methods=['POST'])
+@rate_limit("10 per minute")
+def refresh_token():
+    """Refresh access token using refresh token"""
+    try:
+        data = request.get_json()
+        
+        schema = RefreshTokenSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
+        
+        refresh_token = validated_data['refresh_token']
+        
+        session_data = session_service.validate_session(refresh_token)
+        if not session_data:
+            return jsonify({'message': 'رمز التحديث غير صالح أو منتهي الصلاحية'}), 401
+        
+        user = User.query.filter_by(user_id=session_data['user_id']).first()
+        if not user or not user.is_active:
+            return jsonify({'message': 'المستخدم غير موجود أو غير نشط'}), 401
+        
+        access_token_exp = int(os.environ.get('ACCESS_TOKEN_HOURS', 1))
+        access_token = jwt.encode({
+            'user_id': user.user_id,
+            'exp': datetime.utcnow() + timedelta(hours=access_token_exp)
+        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        
+        session_service.revoke_session(refresh_token)
+        refresh_token_days = int(os.environ.get('REFRESH_TOKEN_DAYS', 30))
+        new_refresh_token = session_service.create_session(user.user_id, expires_days=refresh_token_days)
+        
+        return jsonify({
+            'message': 'تم تحديث الرمز بنجاح',
+            'access_token': access_token,
+            'refresh_token': new_refresh_token,
+            'token_type': 'Bearer',
+            'expires_in': access_token_exp * 3600
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': f'خطأ في تحديث الرمز: {str(e)}'}), 500
+
+@auth_bp.route('/logout', methods=['POST'])
+@token_required
+def logout(current_user):
+    """Logout and revoke refresh token"""
+    try:
+        data = request.get_json() or {}
+        
+        if 'refresh_token' in data:
+            session_service.revoke_session(data['refresh_token'])
+        else:
+            session_service.revoke_all_user_sessions(current_user.user_id)
+        
+        return jsonify({'message': 'تم تسجيل الخروج بنجاح'}), 200
+        
+    except Exception as e:
+        return jsonify({'message': f'خطأ في تسجيل الخروج: {str(e)}'}), 500
+
+@auth_bp.route('/sessions', methods=['GET'])
+@token_required
+def get_sessions(current_user):
+    """Get all active sessions for current user"""
+    try:
+        sessions = session_service.get_user_sessions(current_user.user_id)
+        
+        return jsonify({
+            'sessions': [{
+                'device': s.get('device'),
+                'ip_address': s.get('ip_address'),
+                'created_at': s.get('created_at'),
+                'last_used': s.get('last_used'),
+                'token': s.get('refresh_token')[:8] + '...'
+            } for s in sessions]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': f'خطأ في جلب الجلسات: {str(e)}'}), 500
+
+@auth_bp.route('/sessions/revoke', methods=['POST'])
+@token_required
+def revoke_session(current_user):
+    """Revoke a specific session"""
+    try:
+        data = request.get_json()
+        
+        schema = RevokeSessionSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
+        
+        success = session_service.revoke_session(validated_data['refresh_token'])
+        
+        if success:
+            return jsonify({'message': 'تم إلغاء الجلسة بنجاح'}), 200
+        else:
+            return jsonify({'message': 'الجلسة غير موجودة'}), 404
+        
+    except Exception as e:
+        return jsonify({'message': f'خطأ في إلغاء الجلسة: {str(e)}'}), 500
+
 @auth_bp.route('/profile', methods=['GET'])
 @token_required
 def get_profile(current_user):
-    return jsonify({
-        'user': current_user.to_dict()
-    }), 200
+    return jsonify({'user': current_user.to_dict()}), 200
 
 @auth_bp.route('/profile', methods=['PUT'])
 @token_required
@@ -347,19 +503,23 @@ def update_profile(current_user):
     try:
         data = request.get_json()
         
-        # Update allowed fields
-        if 'full_name' in data:
-            current_user.full_name = data['full_name']
-        if 'phone_number' in data:
-            current_user.phone_number = data['phone_number']
-        if 'address' in data:
-            current_user.address = data['address']
-        if 'email' in data:
-            # Check if email is already taken by another user
-            existing_user = User.query.filter_by(email=data['email']).first()
+        schema = UserUpdateSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
+        
+        if 'full_name' in validated_data:
+            current_user.full_name = validated_data['full_name']
+        if 'phone_number' in validated_data:
+            current_user.phone_number = validated_data['phone_number']
+        if 'address' in validated_data:
+            current_user.address = validated_data['address']
+        if 'email' in validated_data:
+            existing_user = User.query.filter_by(email=validated_data['email']).first()
             if existing_user and existing_user.user_id != current_user.user_id:
                 return jsonify({'message': 'البريد الإلكتروني مستخدم مسبقاً'}), 400
-            current_user.email = data['email']
+            current_user.email = validated_data['email']
         
         current_user.updated_at = datetime.utcnow()
         db.session.commit()
@@ -375,21 +535,48 @@ def update_profile(current_user):
 
 @auth_bp.route('/change-password', methods=['POST'])
 @token_required
+@rate_limit("3 per hour")
 def change_password(current_user):
     try:
         data = request.get_json()
         
-        if not data.get('current_password') or not data.get('new_password'):
-            return jsonify({'message': 'كلمة المرور الحالية والجديدة مطلوبتان'}), 400
+        schema = ChangePasswordSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            return jsonify({'message': 'بيانات غير صالحة', 'errors': err.messages}), 400
         
-        if not check_password_hash(current_user.password_hash, data['current_password']):
+        if not check_password_hash(current_user.password_hash, validated_data['current_password']):
             return jsonify({'message': 'كلمة المرور الحالية غير صحيحة'}), 400
         
-        current_user.password_hash = generate_password_hash(data['new_password'])
+        is_valid, errors = validate_password_strength(validated_data['new_password'])
+        if not is_valid:
+            return jsonify({'message': 'كلمة المرور الجديدة ضعيفة', 'errors': errors}), 400
+        
+        if current_user.password_history:
+            try:
+                history = json.loads(current_user.password_history)
+                for old_hash in history[-3:]:
+                    if check_password_hash(old_hash, validated_data['new_password']):
+                        return jsonify({'message': 'لا يمكن استخدام كلمة مرور سبق استخدامها'}), 400
+            except:
+                history = []
+        else:
+            history = []
+        
+        new_hash = generate_password_hash(validated_data['new_password'])
+        history.append(current_user.password_hash)
+        history = history[-3:]
+        
+        current_user.password_hash = new_hash
+        current_user.password_history = json.dumps(history)
+        current_user.last_password_change = datetime.utcnow()
         current_user.updated_at = datetime.utcnow()
         db.session.commit()
         
-        return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
+        session_service.revoke_all_user_sessions(current_user.user_id)
+        
+        return jsonify({'message': 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول مرة أخرى'}), 200
         
     except Exception as e:
         db.session.rollback()
@@ -399,13 +586,10 @@ def change_password(current_user):
 def get_roles():
     try:
         roles = Role.query.all()
-        return jsonify({
-            'roles': [role.to_dict() for role in roles]
-        }), 200
+        return jsonify({'roles': [role.to_dict() for role in roles]}), 200
     except Exception as e:
         return jsonify({'message': f'خطأ في جلب الأدوار: {str(e)}'}), 500
 
-# 2FA ENDPOINTS
 @auth_bp.route('/2fa/enable', methods=['POST'])
 @token_required
 def enable_2fa(current_user):
@@ -414,24 +598,20 @@ def enable_2fa(current_user):
         if current_user.two_factor_enabled:
             return jsonify({'message': 'المصادقة الثنائية مفعلة بالفعل'}), 400
         
-        # Generate a new secret
         secret = pyotp.random_base32()
         current_user.two_factor_secret = secret
         
-        # Generate QR code
         totp = pyotp.TOTP(secret)
         provisioning_uri = totp.provisioning_uri(
             name=current_user.email,
             issuer_name='نظام الشكاوى الإلكتروني'
         )
         
-        # Create QR code image
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)  # type: ignore
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(provisioning_uri)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
         
-        # Convert to base64
         buffer = io.BytesIO()
         img.save(buffer, format='PNG')
         img_str = base64.b64encode(buffer.getvalue()).decode()
@@ -462,7 +642,6 @@ def verify_2fa_setup(current_user):
         if not current_user.two_factor_secret:
             return jsonify({'message': 'لم يتم إعداد المصادقة الثنائية'}), 400
         
-        # Verify the code
         totp = pyotp.TOTP(current_user.two_factor_secret)
         if totp.verify(data['code']):
             current_user.two_factor_enabled = True
@@ -485,7 +664,6 @@ def disable_2fa(current_user):
         if not current_user.two_factor_enabled:
             return jsonify({'message': 'المصادقة الثنائية غير مفعلة'}), 400
         
-        # Verify password before disabling
         if 'password' not in data:
             return jsonify({'message': 'كلمة المرور مطلوبة لإيقاف المصادقة الثنائية'}), 400
         
@@ -503,7 +681,7 @@ def disable_2fa(current_user):
         return jsonify({'message': f'خطأ في إيقاف المصادقة الثنائية: {str(e)}'}), 500
 
 @auth_bp.route('/2fa/validate', methods=['POST'])
-@rate_limit("10 per minute")
+@rate_limit("5 per 15 minutes")
 def validate_2fa():
     """Validate 2FA code during login"""
     try:
@@ -517,18 +695,24 @@ def validate_2fa():
         if not user or not user.two_factor_enabled:
             return jsonify({'message': 'بيانات غير صحيحة'}), 401
         
-        # Verify the 2FA code
         totp = pyotp.TOTP(user.two_factor_secret)
         if totp.verify(data['code']):
-            from flask import current_app
-            token = jwt.encode({
+            access_token_exp = int(os.environ.get('ACCESS_TOKEN_HOURS', 1))
+            refresh_token_days = int(os.environ.get('REFRESH_TOKEN_DAYS', 30))
+            
+            access_token = jwt.encode({
                 'user_id': user.user_id,
-                'exp': datetime.utcnow() + timedelta(hours=24)
+                'exp': datetime.utcnow() + timedelta(hours=access_token_exp)
             }, current_app.config['SECRET_KEY'], algorithm='HS256')
+            
+            refresh_token = session_service.create_session(user.user_id, expires_days=refresh_token_days)
             
             return jsonify({
                 'message': 'تم تسجيل الدخول بنجاح',
-                'token': token,
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'token_type': 'Bearer',
+                'expires_in': access_token_exp * 3600,
                 'user': user.to_dict()
             }), 200
         else:

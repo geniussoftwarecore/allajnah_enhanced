@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تذكير تجديد الاشتراك</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border-right: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert-box.warning {
+            background-color: #f8d7da;
+            border-right-color: #dc3545;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏰ تذكير تجديد الاشتراك</h1>
+        </div>
+        
+        <div class="content">
+            <p>عزيزي/عزيزتي <strong>{{user_name}}</strong>،</p>
+            
+            <div class="alert-box {{alert_class}}">
+                <p style="margin: 0; font-size: 16px;">
+                    <strong>تنبيه:</strong> اشتراكك في نظام الشكاوى الإلكتروني سينتهي خلال <strong>{{days_remaining}} {{days_text}}</strong>
+                </p>
+            </div>
+            
+            <p>تاريخ انتهاء الاشتراك: <strong>{{end_date}}</strong></p>
+            
+            <div class="info-box">
+                <p><strong>لتجديد اشتراكك، يرجى اتباع الخطوات التالية:</strong></p>
+                <ol>
+                    <li>تسجيل الدخول إلى النظام</li>
+                    <li>الانتقال إلى صفحة "تجديد الاشتراك"</li>
+                    <li>إرسال إثبات الدفع</li>
+                    <li>انتظار الاعتماد من اللجنة</li>
+                </ol>
+            </div>
+            
+            <p>في حالة عدم التجديد قبل تاريخ الانتهاء، قد يتم تعطيل حسابك ولن تتمكن من استخدام النظام.</p>
+            
+            <center>
+                <a href="#" class="button">تجديد الاشتراك الآن</a>
+            </center>
+        </div>
+        
+        <div class="footer">
+            <p>نظام الشكاوى الإلكتروني</p>
+            <p>هذه رسالة تلقائية، يرجى عدم الرد عليها</p>
+        </div>
+    </div>
+</body>
+</html>

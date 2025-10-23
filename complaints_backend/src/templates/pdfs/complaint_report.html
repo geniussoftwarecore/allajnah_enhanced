@@ -1,0 +1,152 @@
+{% extends "pdfs/base_pdf.html" %}
+
+{% block title %}تقرير الشكوى - {{ complaint.complaint_id }}{% endblock %}
+
+{% block header_title %}تقرير تفصيلي للشكوى{% endblock %}
+{% block subtitle %}رقم الشكوى: {{ complaint.complaint_id }}{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">معلومات الشكوى الأساسية</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">رقم الشكوى</div>
+            <div class="info-value">{{ complaint.complaint_id }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">العنوان</div>
+            <div class="info-value">{{ complaint.title }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">اسم التاجر</div>
+            <div class="info-value">{{ complaint.trader_name }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الفئة</div>
+            <div class="info-value">{{ complaint.category_name }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الحالة</div>
+            <div class="info-value">
+                {% if complaint.status_name == 'مغلقة' %}
+                    <span class="badge badge-success">{{ complaint.status_name }}</span>
+                {% elif complaint.status_name == 'قيد المراجعة' %}
+                    <span class="badge badge-warning">{{ complaint.status_name }}</span>
+                {% elif complaint.status_name == 'مفتوحة' %}
+                    <span class="badge badge-info">{{ complaint.status_name }}</span>
+                {% else %}
+                    <span class="badge badge-danger">{{ complaint.status_name }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الأولوية</div>
+            <div class="info-value">{{ complaint.priority }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">تاريخ التقديم</div>
+            <div class="info-value">{{ complaint.submitted_at }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">آخر تحديث</div>
+            <div class="info-value">{{ complaint.last_updated_at }}</div>
+        </div>
+        {% if complaint.assigned_committee_member_name %}
+        <div class="info-row">
+            <div class="info-label">المسند إليه</div>
+            <div class="info-value">{{ complaint.assigned_committee_member_name }}</div>
+        </div>
+        {% endif %}
+        {% if complaint.closed_at %}
+        <div class="info-row">
+            <div class="info-label">تاريخ الإغلاق</div>
+            <div class="info-value">{{ complaint.closed_at }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">وصف الشكوى</div>
+    <div style="padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+        {{ complaint.description }}
+    </div>
+</div>
+
+{% if complaint.resolution_details %}
+<div class="section">
+    <div class="section-title">تفاصيل الحل</div>
+    <div style="padding: 15px; background-color: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">
+        {{ complaint.resolution_details }}
+    </div>
+</div>
+{% endif %}
+
+{% if comments %}
+<div class="section">
+    <div class="section-title">التعليقات والتحديثات ({{ comments|length }})</div>
+    <table>
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>المستخدم</th>
+                <th>الدور</th>
+                <th>التعليق</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comment in comments %}
+            <tr>
+                <td>{{ comment.created_at }}</td>
+                <td>{{ comment.author_name }}</td>
+                <td>{{ comment.author_role }}</td>
+                <td>{{ comment.comment_text }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if attachments %}
+<div class="section">
+    <div class="section-title">المرفقات ({{ attachments|length }})</div>
+    <table>
+        <thead>
+            <tr>
+                <th>اسم الملف</th>
+                <th>النوع</th>
+                <th>تاريخ الرفع</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attachment in attachments %}
+            <tr>
+                <td>{{ attachment.file_name }}</td>
+                <td>{{ attachment.file_type }}</td>
+                <td>{{ attachment.uploaded_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">الخلاصة الإحصائية</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">عدد التعليقات</div>
+            <div class="info-value">{{ comments|length }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">عدد المرفقات</div>
+            <div class="info-value">{{ attachments|length }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">مدة المعالجة</div>
+            <div class="info-value">{{ processing_days }} يوم</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

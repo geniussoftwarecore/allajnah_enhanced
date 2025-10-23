@@ -1,0 +1,173 @@
+{% extends "pdfs/base_pdf.html" %}
+
+{% block title %}إيصال الدفع - {{ payment.payment_id }}{% endblock %}
+
+{% block header_title %}إيصال الدفع الرسمي{% endblock %}
+{% block subtitle %}نظام الشكاوى الإلكتروني{% endblock %}
+
+{% block extra_style %}
+<style>
+    .receipt-box {
+        border: 3px solid #4472C4;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+    }
+    
+    .amount-box {
+        background-color: #e8f5e9;
+        border: 2px solid #4caf50;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    .amount-text {
+        font-size: 28pt;
+        font-weight: bold;
+        color: #2e7d32;
+    }
+    
+    .stamp-area {
+        border: 2px dashed #999;
+        padding: 40px;
+        text-align: center;
+        color: #999;
+        margin-top: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="receipt-box">
+    <h2 style="text-align: center; color: #4472C4; margin-bottom: 20px;">إيصال استلام الدفع</h2>
+    
+    <div class="section">
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">رقم الإيصال</div>
+                <div class="info-value"><strong>{{ payment.payment_id }}</strong></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">تاريخ الدفع</div>
+                <div class="info-value">{{ payment.payment_date }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">تاريخ الإصدار</div>
+                <div class="info-value">{{ current_date }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="amount-box">
+        <div style="font-size: 14pt; color: #666; margin-bottom: 10px;">المبلغ المدفوع</div>
+        <div class="amount-text">{{ payment.amount }} {{ payment.currency }}</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">معلومات الدافع</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">اسم المستخدم</div>
+                <div class="info-value">{{ payment.user_name }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">اسم المرسل</div>
+                <div class="info-value">{{ payment.sender_name }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">رقم هاتف المرسل</div>
+                <div class="info-value">{{ payment.sender_phone }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">تفاصيل الدفع</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">طريقة الدفع</div>
+                <div class="info-value">{{ payment.method_name }}</div>
+            </div>
+            {% if payment.transaction_reference %}
+            <div class="info-row">
+                <div class="info-label">رقم المعاملة</div>
+                <div class="info-value">{{ payment.transaction_reference }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">الحالة</div>
+                <div class="info-value">
+                    {% if payment.status == 'approved' %}
+                        <span class="badge badge-success">معتمد</span>
+                    {% elif payment.status == 'pending' %}
+                        <span class="badge badge-warning">قيد المراجعة</span>
+                    {% else %}
+                        <span class="badge badge-danger">مرفوض</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if payment.reviewed_by_name %}
+    <div class="section">
+        <div class="section-title">معلومات المراجعة</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">المراجع</div>
+                <div class="info-value">{{ payment.reviewed_by_name }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">تاريخ المراجعة</div>
+                <div class="info-value">{{ payment.reviewed_at }}</div>
+            </div>
+            {% if payment.review_notes %}
+            <div class="info-row">
+                <div class="info-label">ملاحظات المراجعة</div>
+                <div class="info-value">{{ payment.review_notes }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if subscription_info %}
+    <div class="section">
+        <div class="section-title">معلومات الاشتراك</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">الخطة</div>
+                <div class="info-value">{{ subscription_info.plan }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">تاريخ البدء</div>
+                <div class="info-value">{{ subscription_info.start_date }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">تاريخ الانتهاء</div>
+                <div class="info-value">{{ subscription_info.end_date }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="stamp-area">
+        <p style="font-size: 12pt; margin-bottom: 60px;">الختم والتوقيع</p>
+        <p style="font-size: 10pt;">________________________________</p>
+        <p style="font-size: 9pt; margin-top: 10px;">المسؤول المالي</p>
+    </div>
+</div>
+
+<div style="margin-top: 30px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+    <p style="font-size: 10pt; text-align: center; margin: 0;">
+        <strong>ملاحظة:</strong> هذا الإيصال صالح كإثبات للدفع ويجب الاحتفاظ به للمراجعة المستقبلية
+    </p>
+</div>
+
+<div style="margin-top: 20px; text-align: center; color: #999; font-size: 9pt;">
+    <p>للاستفسارات، يرجى التواصل مع الإدارة المالية</p>
+    <p>تم إصدار هذا الإيصال إلكترونياً ولا يحتاج إلى توقيع</p>
+</div>
+{% endblock %}

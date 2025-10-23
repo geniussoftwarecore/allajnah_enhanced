@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تم رفض الدفع</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .error-box {
+            background-color: #f8d7da;
+            border-right: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .reason-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border-right: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #dc3545;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="error-icon">❌</div>
+            <h1>تم رفض إثبات الدفع</h1>
+        </div>
+        
+        <div class="content">
+            <p>عزيزي/عزيزتي <strong>{{user_name}}</strong>،</p>
+            
+            <div class="error-box">
+                <p style="margin: 0; font-size: 16px;">
+                    <strong>للأسف،</strong> تم رفض إثبات الدفع الذي قدمته.
+                </p>
+            </div>
+            
+            <div class="reason-box">
+                <p style="margin: 0 0 10px 0;"><strong>سبب الرفض:</strong></p>
+                <p style="margin: 0; font-size: 15px; color: #856404;">
+                    {{rejection_reason}}
+                </p>
+            </div>
+            
+            <div class="info-box">
+                <p style="margin: 0;"><strong>ماذا يمكنك فعله؟</strong></p>
+                <ul style="margin: 10px 0 0 0; padding-right: 20px;">
+                    <li>تأكد من صحة المعلومات في إثبات الدفع</li>
+                    <li>تحقق من وضوح صورة الإيصال</li>
+                    <li>تأكد من تطابق البيانات مع حسابك</li>
+                    <li>أعد إرسال إثبات الدفع مرة أخرى</li>
+                </ul>
+            </div>
+            
+            <p><strong>المعلومات المطلوبة في إثبات الدفع:</strong></p>
+            <ul>
+                <li>صورة واضحة للإيصال</li>
+                <li>اسم المرسل الكامل</li>
+                <li>رقم هاتف المرسل</li>
+                <li>المبلغ المدفوع</li>
+                <li>تاريخ الدفع</li>
+                <li>رقم العملية (إن وجد)</li>
+            </ul>
+            
+            <center>
+                <a href="#" class="button">إعادة إرسال إثبات الدفع</a>
+            </center>
+            
+            <p style="margin-top: 30px; color: #6c757d;">
+                إذا كان لديك أي استفسار، يرجى التواصل مع الدعم الفني.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>نظام الشكاوى الإلكتروني</p>
+            <p>نحن هنا لمساعدتك</p>
+        </div>
+    </div>
+</body>
+</html>

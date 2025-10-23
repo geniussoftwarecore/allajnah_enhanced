@@ -38,6 +38,12 @@ class User(db.Model):
     two_factor_enabled = db.Column(db.Boolean, default=False)
     two_factor_secret = db.Column(db.String(32))
     
+    # Security enhancement fields
+    last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
+    password_history = db.Column(db.Text)
+    account_locked_until = db.Column(db.DateTime)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    
     # Relationships
     complaints_submitted = db.relationship('Complaint', foreign_keys='Complaint.trader_id', backref='trader', lazy=True)
     complaints_assigned = db.relationship('Complaint', foreign_keys='Complaint.assigned_to_committee_id', backref='assigned_committee_member', lazy=True)
@@ -187,7 +193,11 @@ class Notification(db.Model):
     complaint_id = db.Column(db.String(36), db.ForeignKey('complaints.complaint_id'))
     message = db.Column(db.Text, nullable=False)
     type = db.Column(db.String(50))
+    channel = db.Column(db.String(20), default='in_app')
+    status = db.Column(db.String(20), default='pending')
     is_read = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime)
+    error_message = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -197,7 +207,11 @@ class Notification(db.Model):
             'complaint_id': self.complaint_id,
             'message': self.message,
             'type': self.type,
+            'channel': self.channel,
+            'status': self.status,
             'is_read': self.is_read,
+            'sent_at': self.sent_at.isoformat() if self.sent_at else None,
+            'error_message': self.error_message,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
@@ -355,4 +369,50 @@ class Settings(db.Model):
             'value': self.value,
             'description': self.description,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class BackupLog(db.Model):
+    __tablename__ = 'backup_logs'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    filename = db.Column(db.String(255), nullable=False)
+    size_bytes = db.Column(db.BigInteger, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='success')
+    error_message = db.Column(db.Text)
+    checksum = db.Column(db.String(64))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'size_bytes': self.size_bytes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'status': self.status,
+            'error_message': self.error_message,
+            'checksum': self.checksum
+        }
+
+class Export(db.Model):
+    __tablename__ = 'exports'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id'), nullable=False)
+    export_type = db.Column(db.String(50), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+    
+    user = db.relationship('User', backref='exports', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'export_type': self.export_type,
+            'filename': self.filename,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None
         }

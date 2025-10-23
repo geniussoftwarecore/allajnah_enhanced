@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تم اعتماد الدفع</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-right: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .info-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+        .button {
+            display: inline-block;
+            background-color: #11998e;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="success-icon">✅</div>
+            <h1>تم اعتماد دفعتك بنجاح</h1>
+        </div>
+        
+        <div class="content">
+            <p>عزيزي/عزيزتي <strong>{{user_name}}</strong>،</p>
+            
+            <div class="success-box">
+                <p style="margin: 0; font-size: 16px;">
+                    <strong>مبروك!</strong> تم اعتماد دفعتك وتفعيل اشتراكك السنوي بنجاح.
+                </p>
+            </div>
+            
+            <p>يمكنك الآن الاستفادة من جميع مزايا النظام:</p>
+            
+            <table class="info-table">
+                <tr>
+                    <td>حالة الاشتراك:</td>
+                    <td><span style="color: #28a745; font-weight: bold;">نشط</span></td>
+                </tr>
+                <tr>
+                    <td>تاريخ البدء:</td>
+                    <td>{{start_date}}</td>
+                </tr>
+                <tr>
+                    <td>تاريخ الانتهاء:</td>
+                    <td>{{end_date}}</td>
+                </tr>
+                <tr>
+                    <td>مدة الاشتراك:</td>
+                    <td>سنة واحدة</td>
+                </tr>
+            </table>
+            
+            <p><strong>المزايا المتاحة لك:</strong></p>
+            <ul>
+                <li>تقديم شكاوى غير محدودة</li>
+                <li>متابعة حالة الشكاوى</li>
+                <li>استلام الإشعارات الفورية</li>
+                <li>الوصول إلى التقارير والإحصائيات</li>
+            </ul>
+            
+            <center>
+                <a href="#" class="button">الدخول إلى لوحة التحكم</a>
+            </center>
+            
+            <p style="margin-top: 30px; color: #6c757d;">
+                سنرسل لك تذكيرات قبل انتهاء اشتراكك لضمان عدم انقطاع الخدمة.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>نظام الشكاوى الإلكتروني</p>
+            <p>شكراً لثقتكم بنا</p>
+        </div>
+    </div>
+</body>
+</html>

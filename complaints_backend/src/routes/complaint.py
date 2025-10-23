@@ -4,6 +4,7 @@ import os
 from werkzeug.utils import secure_filename
 from src.models.complaint import db, Complaint, ComplaintCategory, ComplaintStatus, ComplaintAttachment, ComplaintComment, Notification, User
 from src.routes.auth import token_required, role_required, subscription_required
+from src.services.job_queue import enqueue_notification
 
 complaint_bp = Blueprint('complaint', __name__)
 
@@ -194,15 +195,24 @@ def update_complaint_status(current_user, complaint_id):
             if 'resolution_details' in data:
                 complaint.resolution_details = data['resolution_details']
         
-        # Create notification for trader
-        create_notification(
-            complaint.trader_id,
-            complaint.complaint_id,
-            f'تم تحديث حالة شكواك من "{old_status}" إلى "{status.status_name}"',
-            'status_update'
-        )
-        
         db.session.commit()
+        
+        # Send email notification for trader
+        trader = User.query.get(complaint.trader_id)
+        if trader:
+            enqueue_notification(
+                user_id=trader.user_id,
+                notification_type='complaint_status_changed',
+                message=f'تم تحديث حالة شكواك من "{old_status}" إلى "{status.status_name}"',
+                channel='email',
+                complaint_id=complaint.complaint_id,
+                complaint_title=complaint.title,
+                old_status=old_status,
+                new_status=status.status_name,
+                old_status_class=old_status.lower().replace(' ', '-'),
+                new_status_class=status.status_name.lower().replace(' ', '-'),
+                update_date=datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+            )
         
         return jsonify({
             'message': 'Complaint status updated successfully',

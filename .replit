@@ -5,7 +5,7 @@ integrations = ["python_database:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["file", "freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "postgresql", "tcl", "tk", "zlib"]
+packages = ["cairo", "ffmpeg-full", "file", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "gobject-introspection", "gtk3", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pango", "pkg-config", "postgresql", "qhull", "tcl", "tk", "zlib", "gdk-pixbuf", "libffi"]
 
 [workflows]
 runButton = "Project"
@@ -86,6 +86,10 @@ externalPort = 3000
 [[ports]]
 localPort = 44755
 externalPort = 3003
+
+[[ports]]
+localPort = 45453
+externalPort = 6800
 
 [deployment]
 deploymentTarget = "autoscale"

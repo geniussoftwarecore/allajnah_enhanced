@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مرحباً بك في نظام الشكاوى</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Tahoma', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .credentials-box {
+            background-color: #e7f3ff;
+            border: 2px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .credentials-box p {
+            margin: 10px 0;
+            font-size: 15px;
+        }
+        .credentials-box .credential-value {
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-family: monospace;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .feature-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-right: 3px solid #667eea;
+        }
+        .feature-box h4 {
+            margin: 0 0 8px 0;
+            color: #667eea;
+        }
+        .feature-box p {
+            margin: 0;
+            color: #6c757d;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border-right: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #667eea;
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="welcome-icon">🎉</div>
+            <h1>مرحباً بك في نظام الشكاوى الإلكتروني</h1>
+        </div>
+        
+        <div class="content">
+            <p style="font-size: 18px;">عزيزي/عزيزتي <strong>{{user_name}}</strong>،</p>
+            
+            <p>نرحب بك في نظام الشكاوى الإلكتروني! تم إنشاء حسابك بنجاح.</p>
+            
+            <div class="credentials-box">
+                <p style="margin-top: 0;"><strong>🔐 بيانات الدخول الخاصة بك:</strong></p>
+                <p>
+                    <strong>اسم المستخدم:</strong>
+                    <span class="credential-value">{{username}}</span>
+                </p>
+                <p>
+                    <strong>البريد الإلكتروني:</strong>
+                    <span class="credential-value">{{email}}</span>
+                </p>
+                <p>
+                    <strong>كلمة المرور:</strong>
+                    <span class="credential-value">{{temporary_password}}</span>
+                </p>
+            </div>
+            
+            <div class="warning-box">
+                <p style="margin: 0;">
+                    <strong>⚠️ مهم:</strong> يرجى تغيير كلمة المرور عند أول تسجيل دخول لحماية حسابك.
+                </p>
+            </div>
+            
+            <p><strong>📋 ما يمكنك فعله في النظام:</strong></p>
+            
+            <div class="feature-box">
+                <h4>📝 تقديم الشكاوى</h4>
+                <p>قدم شكاواك بسهولة مع إمكانية إرفاق المستندات الداعمة</p>
+            </div>
+            
+            <div class="feature-box">
+                <h4>📊 متابعة الشكاوى</h4>
+                <p>تابع حالة شكاواك وتلق إشعارات فورية بالتحديثات</p>
+            </div>
+            
+            <div class="feature-box">
+                <h4>💬 التواصل المباشر</h4>
+                <p>تواصل مع اللجان المختصة من خلال نظام التعليقات</p>
+            </div>
+            
+            <div class="feature-box">
+                <h4>📈 التقارير والإحصائيات</h4>
+                <p>احصل على تقارير شاملة عن شكاواك ومتابعتها</p>
+            </div>
+            
+            <p style="margin-top: 25px;"><strong>🚀 الخطوات التالية:</strong></p>
+            <ol>
+                <li>قم بتسجيل الدخول باستخدام بيانات الدخول أعلاه</li>
+                <li>قم بتغيير كلمة المرور من إعدادات الحساب</li>
+                <li>أكمل معلومات ملفك الشخصي</li>
+                <li>ابدأ في استخدام النظام</li>
+            </ol>
+            
+            <center>
+                <a href="#" class="button">تسجيل الدخول الآن</a>
+            </center>
+            
+            <p style="margin-top: 30px; color: #6c757d;">
+                إذا واجهت أي مشكلة أو كان لديك استفسار، لا تتردد في التواصل مع فريق الدعم.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>نظام الشكاوى الإلكتروني</strong></p>
+            <p>نسعى دائماً لتقديم أفضل الخدمات</p>
+            <p style="margin-top: 10px;">هذه رسالة تلقائية، يرجى عدم الرد عليها</p>
+        </div>
+    </div>
+</body>
+</html>

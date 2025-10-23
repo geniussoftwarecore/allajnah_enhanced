@@ -1,0 +1,152 @@
+{% extends "pdfs/base_pdf.html" %}
+
+{% block title %}التقرير الشهري - {{ month }}/{{ year }}{% endblock %}
+
+{% block header_title %}التقرير الإحصائي الشهري{% endblock %}
+{% block subtitle %}{{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="section-title">ملخص الأداء العام</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">إجمالي الشكاوى</div>
+            <div class="info-value"><strong style="font-size: 14pt; color: #4472C4;">{{ stats.total_complaints }}</strong></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الشكاوى المفتوحة</div>
+            <div class="info-value"><span class="badge badge-info">{{ stats.open_complaints }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الشكاوى المغلقة</div>
+            <div class="info-value"><span class="badge badge-success">{{ stats.closed_complaints }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">قيد المراجعة</div>
+            <div class="info-value"><span class="badge badge-warning">{{ stats.in_review_complaints }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">معدل الحل</div>
+            <div class="info-value"><strong>{{ stats.resolution_rate }}%</strong></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">متوسط وقت المعالجة</div>
+            <div class="info-value">{{ stats.avg_processing_days }} يوم</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">توزيع الشكاوى حسب الفئة</div>
+    <table>
+        <thead>
+            <tr>
+                <th>الفئة</th>
+                <th class="text-center">العدد</th>
+                <th class="text-center">النسبة المئوية</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in stats.by_category %}
+            <tr>
+                <td>{{ category.name }}</td>
+                <td class="text-center"><strong>{{ category.count }}</strong></td>
+                <td class="text-center">{{ category.percentage }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if chart_path %}
+<div class="section">
+    <div class="section-title">الرسم البياني للشكاوى</div>
+    <div class="chart-container">
+        <img src="{{ chart_path }}" alt="رسم بياني للشكاوى" style="max-width: 100%;" />
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">إحصائيات الاشتراكات</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">إجمالي المستخدمين النشطين</div>
+            <div class="info-value">{{ stats.active_users }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الاشتراكات النشطة</div>
+            <div class="info-value"><span class="badge badge-success">{{ stats.active_subscriptions }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">الاشتراكات المنتهية</div>
+            <div class="info-value"><span class="badge badge-danger">{{ stats.expired_subscriptions }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">معدل التجديد</div>
+            <div class="info-value">{{ stats.renewal_rate }}%</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">إحصائيات المدفوعات</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">إجمالي المدفوعات</div>
+            <div class="info-value">{{ stats.total_payments }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">المدفوعات المعتمدة</div>
+            <div class="info-value"><span class="badge badge-success">{{ stats.approved_payments }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">المدفوعات المرفوضة</div>
+            <div class="info-value"><span class="badge badge-danger">{{ stats.rejected_payments }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">قيد المراجعة</div>
+            <div class="info-value"><span class="badge badge-warning">{{ stats.pending_payments }}</span></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">إجمالي الإيرادات</div>
+            <div class="info-value"><strong style="font-size: 14pt; color: #28a745;">{{ stats.total_revenue }} {{ stats.currency }}</strong></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">معدل القبول</div>
+            <div class="info-value">{{ stats.approval_rate }}%</div>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">أبرز الأحداث</div>
+    <table>
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>الحدث</th>
+                <th>التفاصيل</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in stats.key_events %}
+            <tr>
+                <td>{{ event.date }}</td>
+                <td>{{ event.type }}</td>
+                <td>{{ event.description }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">التوصيات</div>
+    <ul style="list-style-type: disc; padding-right: 40px; line-height: 2;">
+        {% for recommendation in stats.recommendations %}
+        <li>{{ recommendation }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
