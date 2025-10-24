@@ -34,23 +34,56 @@ export const AuthProvider = ({ children }) => {
           setUser(response.data.user);
         } catch (error) {
           console.error('Auth check failed:', error);
-          logout();
+          
+          // Only logout if it's an authentication error (401/403)
+          // Don't logout on network errors or server errors
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            logout();
+          } else {
+            // Keep the session but log the error
+            console.warn('Profile fetch failed but keeping session:', error.message);
+          }
         }
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [token]);
+  }, []);
 
-  const login = async (username, password) => {
+  /**
+   * Login with optional OTP support
+   * @param {string} username - Username
+   * @param {string} password - Password  
+   * @param {string} otpCode - Optional OTP code for 2FA
+   * @returns {object} Result object with success, otpRequired, message, etc.
+   */
+  const login = async (username, password, otpCode = null) => {
     try {
-      const response = await axios.post('/api/login', {
+      const payload = {
         username,
         password
-      });
+      };
 
-      const { token: newToken, user: userData } = response.data;
+      // Include OTP code if provided
+      if (otpCode) {
+        payload.otp_code = otpCode;
+      }
+
+      const response = await axios.post('/api/login', payload);
+
+      // Check if 2FA/OTP is required
+      if (response.data.requires_2fa) {
+        return {
+          success: false,
+          otpRequired: true,
+          message: response.data.message || 'يرجى إدخال رمز التحقق (OTP) من تطبيق المصادقة'
+        };
+      }
+
+      // Successful login - use access_token and refresh_token from backend
+      const { access_token, refresh_token, user: userData } = response.data;
+      const newToken = access_token;
       
       setToken(newToken);
       setUser(userData);
@@ -59,9 +92,36 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
+      
+      // Extract detailed error message
+      let message = 'فشل في تسجيل الدخول';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        // Specific error messages based on status code
+        if (status === 401) {
+          message = data.message || 'اسم المستخدم أو كلمة المرور غير صحيحة';
+        } else if (status === 403) {
+          message = data.message || 'تم قفل الحساب أو غير مصرح بالدخول';
+        } else if (status === 429) {
+          message = 'تم تجاوز عدد محاولات تسجيل الدخول. يرجى المحاولة لاحقاً';
+        } else if (status === 400) {
+          message = data.message || 'بيانات تسجيل الدخول غير صحيحة';
+        } else if (status >= 500) {
+          message = 'خطأ في الخادم. يرجى المحاولة لاحقاً';
+        } else {
+          message = data.message || message;
+        }
+      } else if (error.request) {
+        // Network error - no response received
+        message = 'خطأ في الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت';
+      }
+      
       return { 
-        success: false, 
-        message: error.response?.data?.message || 'فشل في تسجيل الدخول' 
+        success: false,
+        otpRequired: false,
+        message
       };
     }
   };
@@ -80,9 +140,18 @@ export const AuthProvider = ({ children }) => {
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Profile update failed:', error);
+      
+      let message = 'فشل في تحديث الملف الشخصي';
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        const errors = Object.values(error.response.data.errors).flat();
+        message = errors.join(' • ');
+      }
+      
       return { 
         success: false, 
-        message: error.response?.data?.message || 'فشل في تحديث الملف الشخصي' 
+        message
       };
     }
   };
@@ -96,9 +165,43 @@ export const AuthProvider = ({ children }) => {
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Password change failed:', error);
+      
+      let message = 'فشل في تغيير كلمة المرور';
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        const errors = Object.values(error.response.data.errors).flat();
+        message = errors.join(' • ');
+      }
+      
       return { 
         success: false, 
-        message: error.response?.data?.message || 'فشل في تغيير كلمة المرور' 
+        message
+      };
+    }
+  };
+
+  /**
+   * Refresh user profile from server
+   */
+  const refreshProfile = async () => {
+    if (!token) return { success: false, message: 'لم يتم تسجيل الدخول' };
+    
+    try {
+      const response = await axios.get('/api/profile');
+      setUser(response.data.user);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Profile refresh failed:', error);
+      
+      // Only logout on auth errors
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        logout();
+      }
+      
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'فشل في تحديث البيانات'
       };
     }
   };
@@ -111,6 +214,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     changePassword,
+    refreshProfile,
     isAuthenticated: !!token && !!user,
     isTrader: user?.role_name === 'Trader',
     isTechnicalCommittee: user?.role_name === 'Technical Committee',

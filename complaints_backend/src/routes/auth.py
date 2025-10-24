@@ -357,12 +357,34 @@ def login():
         if not user.is_active:
             return jsonify({'message': 'الحساب غير نشط'}), 401
         
+        # Handle 2FA if enabled
         if user.two_factor_enabled:
-            return jsonify({
-                'requires_2fa': True,
-                'message': 'يرجى إدخال رمز المصادقة الثنائية',
-                'username': user.username
-            }), 200
+            otp_code = validated_data.get('otp_code')
+            
+            # If OTP code not provided, request it
+            if not otp_code:
+                return jsonify({
+                    'requires_2fa': True,
+                    'message': 'يرجى إدخال رمز المصادقة الثنائية',
+                    'username': user.username
+                }), 200
+            
+            # Verify OTP code
+            totp = pyotp.TOTP(user.two_factor_secret)
+            if not totp.verify(otp_code, valid_window=1):
+                is_locked, locked_until = lockout_service.record_failed_attempt(username, ip_address)
+                
+                if is_locked:
+                    return jsonify({
+                        'message': 'تم قفل الحساب بسبب محاولات تسجيل دخول فاشلة متعددة',
+                        'account_locked': True
+                    }), 403
+                
+                remaining = lockout_service.get_remaining_attempts(username, ip_address)
+                return jsonify({
+                    'message': f'رمز التحقق غير صحيح. المحاولات المتبقية: {remaining}',
+                    'remaining_attempts': remaining
+                }), 401
         
         lockout_service.clear_failed_attempts(username, ip_address)
         
