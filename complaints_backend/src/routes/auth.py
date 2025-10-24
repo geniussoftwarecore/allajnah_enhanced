@@ -6,6 +6,7 @@ import qrcode
 import io
 import base64
 import json
+import os
 from datetime import datetime, timedelta
 from functools import wraps
 from marshmallow import ValidationError
