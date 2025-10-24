@@ -7,6 +7,51 @@ This project is an Arabic electronic complaints management system built with Fla
 - Language: Arabic (RTL interface)
 - Database: SQLite (pre-existing, preserved)
 
+## Initial Setup Instructions
+
+### First-Time Database Initialization
+After importing the project, you **must** initialize the database with default roles and settings:
+
+1. **Initialize the database with roles and categories:**
+   ```bash
+   cd complaints_backend && python init_db.py
+   ```
+   This creates:
+   - 3 default roles: Trader, Technical Committee, Higher Committee
+   - 5 complaint categories
+   - 7 complaint statuses
+
+2. **Initialize system settings and payment methods:**
+   ```bash
+   cd complaints_backend && python src/init_settings.py
+   ```
+   This creates:
+   - Subscription pricing (default: 50000 YER/year)
+   - Grace period settings
+   - Payment methods (Yemen Mobile, MTN)
+
+3. **Create the first admin account:**
+   - Navigate to `/setup` in your browser
+   - Fill in the form with:
+     - **Username**: English letters and numbers only (e.g., `admin`)
+     - **Email**: Valid email address
+     - **Password**: Must meet all requirements:
+       - 8 characters minimum
+       - At least one uppercase letter (A-Z)
+       - At least one lowercase letter (a-z)
+       - At least one number (0-9)
+       - At least one special character (!@#$%^&*)
+     - **Full Name**: Can be in Arabic
+     - **Phone** and **Address**: Optional
+   - Example valid password: `Admin@123`
+
+### Password Policy
+The system enforces strict password requirements for security:
+- Minimum 8 characters
+- Must contain uppercase, lowercase, numbers, and special characters
+- Cannot contain common patterns or sequential characters
+- Cannot be a commonly used password
+
 ## System Architecture
 
 ### UI/UX Decisions
