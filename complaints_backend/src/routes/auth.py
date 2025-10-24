@@ -15,7 +15,7 @@ from src.services.session_service import session_service
 from src.utils.security import lockout_service
 from src.utils.password_policy import validate_password_strength
 from src.schemas.user import (
-    UserCreateSchema, UserUpdateSchema, UserLoginSchema,
+    InitialSetupSchema, UserCreateSchema, UserUpdateSchema, UserLoginSchema,
     ChangePasswordSchema, RefreshTokenSchema, RevokeSessionSchema
 )
 
@@ -171,7 +171,7 @@ def initial_setup():
         if not data:
             return jsonify({'message': 'البيانات مطلوبة'}), 400
         
-        schema = UserCreateSchema()
+        schema = InitialSetupSchema()
         try:
             validated_data = schema.load(data)
         except ValidationError as err:

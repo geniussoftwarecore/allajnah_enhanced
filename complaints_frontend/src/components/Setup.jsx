@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Settings, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Settings, AlertCircle, CheckCircle, XCircle, Check, X } from 'lucide-react';
 
 const Setup = () => {
   const [formData, setFormData] = useState({
@@ -23,12 +23,23 @@ const Setup = () => {
   const [checkingSetup, setCheckingSetup] = useState(true);
   const [setupRequired, setSetupRequired] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false
+  });
   
   const navigate = useNavigate();
 
   useEffect(() => {
     checkSetupStatus();
   }, []);
+
+  useEffect(() => {
+    validatePassword(formData.password);
+  }, [formData.password]);
 
   const checkSetupStatus = async () => {
     try {
@@ -47,6 +58,16 @@ const Setup = () => {
     }
   };
 
+  const validatePassword = (password) => {
+    setPasswordValidation({
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{};:'",.<>?/\\|`~]/.test(password)
+    });
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -60,8 +81,22 @@ const Setup = () => {
     setLoading(true);
     setError('');
 
+    // Validation checks
     if (!formData.username || !formData.email || !formData.password || !formData.full_name) {
       setError('يرجى إدخال جميع الحقول المطلوبة');
+      setLoading(false);
+      return;
+    }
+
+    // Username validation
+    if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
+      setError('اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام و _ و - فقط (لا أحرف عربية)');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      setError('اسم المستخدم يجب أن يكون 3 أحرف على الأقل');
       setLoading(false);
       return;
     }
@@ -72,8 +107,10 @@ const Setup = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('يجب أن تكون كلمة المرور 6 أحرف على الأقل');
+    // Check all password requirements
+    const allRequirementsMet = Object.values(passwordValidation).every(val => val === true);
+    if (!allRequirementsMet) {
+      setError('يرجى التأكد من استيفاء جميع متطلبات كلمة المرور');
       setLoading(false);
       return;
     }
@@ -100,12 +137,27 @@ const Setup = () => {
           navigate('/login');
         }, 2000);
       } else {
-        setError(err.response?.data?.message || 'خطأ في إنشاء حساب المسؤول');
+        const errorMessage = err.response?.data?.message || 'خطأ في إنشاء حساب المسؤول';
+        const errors = err.response?.data?.errors;
+        
+        if (errors) {
+          const errorList = Object.values(errors).flat().join(' - ');
+          setError(`${errorMessage}: ${errorList}`);
+        } else {
+          setError(errorMessage);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const PasswordRequirement = ({ met, text }) => (
+    <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-600' : 'text-gray-500'}`}>
+      {met ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+      <span>{text}</span>
+    </div>
+  );
 
   if (checkingSetup) {
     return (
@@ -159,7 +211,7 @@ const Setup = () => {
                 إعداد النظام الأولي
               </CardTitle>
               <CardDescription className="text-gray-600 mt-2">
-                قم بإنشاء حساب المسؤول الأول للنظام
+                قم بإنشاء حساب المسؤول الأول للنظام (اللجنة العليا)
               </CardDescription>
             </div>
           </CardHeader>
@@ -186,11 +238,12 @@ const Setup = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="أدخل اسم المستخدم"
+                    placeholder="أدخل اسم المستخدم (بالإنجليزية فقط)"
                     className="h-11 text-right"
                     disabled={loading}
                     required
                   />
+                  <p className="text-xs text-gray-500">أحرف إنجليزية وأرقام و _ و - فقط</p>
                 </div>
 
                 <div className="space-y-2">
@@ -277,6 +330,20 @@ const Setup = () => {
                   />
                 </div>
               </div>
+
+              {/* Password Requirements */}
+              {formData.password && (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2">
+                  <p className="text-sm font-medium text-gray-700 mb-3">متطلبات كلمة المرور:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <PasswordRequirement met={passwordValidation.length} text="8 أحرف على الأقل" />
+                    <PasswordRequirement met={passwordValidation.uppercase} text="حرف كبير واحد على الأقل (A-Z)" />
+                    <PasswordRequirement met={passwordValidation.lowercase} text="حرف صغير واحد على الأقل (a-z)" />
+                    <PasswordRequirement met={passwordValidation.number} text="رقم واحد على الأقل (0-9)" />
+                    <PasswordRequirement met={passwordValidation.special} text="رمز خاص واحد على الأقل (!@#$%)" />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="address" className="text-sm font-medium text-gray-700">

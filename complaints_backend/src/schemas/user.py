@@ -1,5 +1,42 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
 
+class InitialSetupSchema(Schema):
+    """Schema for initial system setup - creating first admin"""
+    username = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=3, max=50, error='اسم المستخدم يجب أن يكون بين 3 و 50 حرفاً'),
+            validate.Regexp(
+                r'^[a-zA-Z0-9_-]+$',
+                error='اسم المستخدم يجب أن يحتوي على أحرف إنجليزية وأرقام و _ و - فقط'
+            )
+        ]
+    )
+    email = fields.Email(required=True, error_messages={'invalid': 'البريد الإلكتروني غير صالح'})
+    password = fields.Str(
+        required=True,
+        validate=validate.Length(min=8, error='كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+    )
+    full_name = fields.Str(
+        required=True,
+        validate=validate.Length(min=2, max=255, error='الاسم الكامل يجب أن يكون بين 2 و 255 حرفاً')
+    )
+    phone_number = fields.Str(
+        allow_none=True,
+        validate=validate.Length(max=50, error='رقم الهاتف طويل جداً')
+    )
+    address = fields.Str(allow_none=True)
+    
+    @validates('phone_number')
+    def validate_phone(self, value):
+        if value:
+            cleaned = value.replace('+', '').replace('-', '').replace(' ', '')
+            if not cleaned.isdigit():
+                raise ValidationError('رقم الهاتف يجب أن يحتوي على أرقام فقط')
+            if value.startswith('+967'):
+                if len(cleaned) < 12:
+                    raise ValidationError('رقم الهاتف اليمني غير صالح')
+
 class UserCreateSchema(Schema):
     """Schema for creating a new user"""
     username = fields.Str(
