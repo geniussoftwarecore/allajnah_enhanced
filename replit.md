@@ -55,7 +55,14 @@ The system enforces strict password requirements for security:
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend is built with React and Vite, utilizing Radix UI components and Tailwind CSS for styling, ensuring a modern and responsive user interface with full Arabic (RTL) support. A `first-time setup wizard` is implemented for initial system configuration.
+The frontend is built with React and Vite, utilizing Radix UI components and Tailwind CSS for styling, ensuring a modern and responsive user interface with full Arabic (RTL) support. 
+
+**Enhanced Authentication Experience:**
+- **Progressive Login Flow**: Multi-step authentication (username → password → OTP) with smooth transitions and visual feedback
+- **Modern Setup Wizard**: 4-step guided setup with organization info, admin account creation, security preferences, and completion confirmation
+- **Password Security**: Real-time password strength indicator, breach detection via HIBP API, sequential/repeated character detection, and cryptographically secure password generation
+- **Smart User Feedback**: RTL-aware toast notifications with contextual icons, connection status indicators, and account lockout warnings
+- **Session Management**: "Remember me" functionality, refresh token rotation, and automatic session expiry handling
 
 ### Technical Implementations
 - **Backend**: Flask 3.1.1, SQLAlchemy ORM with SQLite, JWT for authentication, Flask-CORS, Gunicorn for production.
