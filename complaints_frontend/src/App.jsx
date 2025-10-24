@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
-import Login from './components/Login';
-import Setup from './components/Setup';
+import Login from './components/LoginEnhanced';
+import Setup from './components/SetupEnhanced';
 import Dashboard from './components/Dashboard';
 import ComplaintsList from './components/ComplaintsList';
 import NewComplaint from './components/NewComplaint';
