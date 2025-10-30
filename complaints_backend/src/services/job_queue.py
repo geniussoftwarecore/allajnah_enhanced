@@ -6,16 +6,20 @@ from flask import current_app
 from src.database.db import db
 from src.models.complaint import User, Subscription, Settings, Notification
 
-redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+redis_url = os.environ.get('REDIS_URL', '')
 
-try:
-    redis_conn = Redis.from_url(redis_url)
-    redis_conn.ping()
-    use_redis = True
-except Exception as e:
+if redis_url:
+    try:
+        redis_conn = Redis.from_url(redis_url)
+        redis_conn.ping()
+        use_redis = True
+    except Exception as e:
+        redis_conn = None
+        use_redis = False
+        print(f'Redis connection failed, using in-memory fallback: {str(e)}')
+else:
     redis_conn = None
     use_redis = False
-    print(f'Redis connection failed, using in-memory fallback: {str(e)}')
 
 if use_redis:
     notification_queue = Queue('notifications', connection=redis_conn, default_timeout=300)
