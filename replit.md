@@ -101,6 +101,26 @@ The frontend is built with React and Vite, utilizing Radix UI components and Tai
 - Admin-only user creation (self-registration is disabled).
 - Initial setup wizard for first-time administration.
 
+**Recent Enhancements (October 2025):**
+1. **PWA Support**: Progressive Web App capabilities with service worker, offline support, and installable experience
+2. **Enhanced Subscription Management**:
+   - Real-time subscription countdown banner with expiry warnings
+   - Grace period enforcement (7-day default)
+   - Comprehensive admin subscription panel with filtering and extension capabilities
+3. **Advanced Analytics Dashboard**:
+   - Interactive charts using Recharts (complaints by status, category, timeline)
+   - Revenue tracking and monthly trend analysis
+   - Resolution time statistics and performance metrics
+   - Admin-only dashboard with KPIs and visualizations
+4. **Security Enhancements**:
+   - Two-Factor Authentication (2FA) with QR code setup for admin users
+   - Comprehensive security event logging and monitoring
+   - Real-time security statistics dashboard
+5. **Comprehensive Audit Log**:
+   - Full audit trail with advanced filtering (action type, user, date range)
+   - Pagination support for large datasets
+   - CSV export functionality for compliance and reporting
+
 ### System Design Choices
 - **Modularity**: Separation of concerns between backend (Flask) and frontend (React).
 - **Scalability**: Stateless backend design for autoscale deployment, asynchronous task processing with Redis.
@@ -121,3 +141,31 @@ The frontend is built with React and Vite, utilizing Radix UI components and Tai
 - **Axios**: HTTP client for frontend-backend communication.
 - **Radix UI**: Frontend UI components.
 - **Tailwind CSS**: Utility-first CSS framework for styling.
+- **Recharts**: Interactive charting library for admin analytics dashboard.
+- **PyOTP**: Python One-Time Password library for 2FA implementation.
+- **QRCode**: QR code generation for 2FA setup.
+
+## Recent API Additions (October 2025)
+
+### Subscription Management APIs
+- `GET /api/subscriptions/user/{user_id}/status` - Get user subscription status with days remaining
+- `GET /api/subscriptions/admin/all` - Admin endpoint to view all subscriptions
+- `POST /api/subscriptions/admin/{id}/extend` - Extend subscription by specified months
+- `GET /api/subscriptions/check-access/{user_id}` - Check subscription access with grace period logic
+- `GET /api/subscriptions/admin/stats` - Subscription statistics for admin dashboard
+
+### Analytics APIs
+- `GET /api/analytics/dashboard/summary` - Dashboard KPIs (complaints, users, revenue, resolution time)
+- `GET /api/analytics/complaints/by-status` - Complaints distribution by status
+- `GET /api/analytics/complaints/by-category` - Complaints distribution by category
+- `GET /api/analytics/complaints/timeline` - 6-month complaint submission timeline
+- `GET /api/analytics/revenue/monthly` - Monthly revenue trends
+- `GET /api/analytics/performance/resolution-time` - Resolution time statistics and distribution
+
+### Security APIs
+- `POST /api/security/2fa/setup` - Generate 2FA QR code and secret
+- `POST /api/security/2fa/enable` - Enable 2FA with verification code
+- `POST /api/security/2fa/disable` - Disable 2FA (requires password)
+- `GET /api/security/audit-log` - Comprehensive audit log with filtering and pagination
+- `GET /api/security/security-events` - Recent security events (logins, 2FA, password changes)
+- `GET /api/security/stats` - Security statistics (login attempts, 2FA adoption, etc.)
