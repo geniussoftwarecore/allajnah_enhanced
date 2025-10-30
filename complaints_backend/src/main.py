@@ -13,8 +13,11 @@ from src.routes.complaint import complaint_bp
 from src.routes.auth import auth_bp
 from src.routes.subscription import subscription_bp
 from src.routes.subscription_v2 import subscription_v2_bp
+from src.routes.subscription_api import subscription_api_bp
 from src.routes.export import export_bp
 from src.routes.analytics import analytics_bp
+from src.routes.analytics_api import analytics_api_bp
+from src.routes.security_api import security_api_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key-please-change-in-production')
@@ -61,8 +64,11 @@ app.register_blueprint(complaint_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(subscription_bp, url_prefix='/api')
 app.register_blueprint(subscription_v2_bp, url_prefix='/api')
+app.register_blueprint(subscription_api_bp)
 app.register_blueprint(export_bp, url_prefix='/api')
 app.register_blueprint(analytics_bp, url_prefix='/api')
+app.register_blueprint(analytics_api_bp)
+app.register_blueprint(security_api_bp)
 
 database_url = os.environ.get('DATABASE_URL')
 if database_url:
